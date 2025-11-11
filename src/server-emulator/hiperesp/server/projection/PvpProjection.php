@@ -25,8 +25,6 @@ class PvpProjection extends Projection {
         $charEl->addAttribute('intGold', $char->gold);
         $charEl->addAttribute('intGems', $char->gems);
         $charEl->addAttribute('intCoins', $char->coins);
-        $charEl->addAttribute('intMaxBagSlots', $char->maxBagSlots);
-        $charEl->addAttribute('intMaxBankSlots', $char->maxBankSlots);
         $charEl->addAttribute('intMaxHouseSlots', $char->maxHouseSlots);
         $charEl->addAttribute('intMaxHouseItemSlots', $char->maxHouseItemSlots);
         $charEl->addAttribute('intDragonAmulet', $char->dragonAmulet ? 1 : 0);
