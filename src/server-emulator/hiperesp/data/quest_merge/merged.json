@@ -6,5 +6,21 @@
         "type": 0,
         "itemId": 1594,
         "amount": 5
-    }
+    },
+    {
+        "id": 29,
+        "index": 6,
+        "value": 15,
+        "type": 2,
+        "itemId": 1010,
+        "amount": 1
+    },
+    {
+        "id": 74,
+        "index": 11,
+        "value": 15,
+        "type": 2,
+        "itemId": 1594,
+        "amount": 1
+	}
 ]

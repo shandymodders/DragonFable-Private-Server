@@ -94,5 +94,41 @@
         "name": "Arachnalchemy",
         "swf": "interfaces\/Interface-Arachnalchemy.swf?ver=1",
         "loadUnder": 0
+    },
+    {
+        "id": 17,
+        "name": "Trainer Log",
+        "swf": "interfaces\/trainerlog.swf",
+        "loadUnder": 0
+    },
+    {
+        "id": 18,
+        "name": "Hair Loader",
+        "swf": "interfaces\/Hairloader.swf",
+        "loadUnder": 0
+    },
+    {
+        "id": 19,
+        "name": "Load Merge Shop",
+        "swf": "interfaces\/LoadMergeShop.swf",
+        "loadUnder": 0
+    },
+    {
+        "id": 20,
+        "name": "Quest Loader",
+        "swf": "interfaces\/LoadQuest.swf",
+        "loadUnder": 0
+    },
+    {
+        "id": 21,
+        "name": "Shop Loader",
+        "swf": "interfaces\/LoadShop.swf",
+        "loadUnder": 0
+    },
+    {
+        "id": 22,
+        "name": "Town Loader",
+        "swf": "interfaces\/LoadTown.swf",
+        "loadUnder": 0
     }
 ]
