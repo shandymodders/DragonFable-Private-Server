@@ -42378,5 +42378,30 @@
         "id": 8476,
         "questId": 2250,
         "monsterId": 165
+    },
+    {
+        "id": 8477,
+        "questId": 2255,
+        "monsterId": 1688
+    },
+    {
+        "id": 8478,
+        "questId": 2255,
+        "monsterId": 1689
+    },
+    {
+        "id": 8479,
+        "questId": 2253,
+        "monsterId": 1688
+    },
+    {
+        "id": 8480,
+        "questId": 2254,
+        "monsterId": 1688
+    },
+    {
+        "id": 8481,
+        "questId": 2254,
+        "monsterId": 1689
     }
 ]
