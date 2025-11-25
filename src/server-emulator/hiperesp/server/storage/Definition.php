@@ -88,7 +88,7 @@ final class Definition {
                     "enableAdvertising"     => 0, // if true, the game will show ads
                     "dailyQuestCoinsReward" => 200, // coins reward for daily quests (default: 3)
 
-                    "dragonAmuletForAll" => 0, // if true, all players will have dragon amulet (DA) for free
+                    "dragonAmuletForAll" => 1, // if true, all players will have dragon amulet (DA) for free
 
                     "revalidateClientValues" => 1, // some inconsistencies in the client can occur.
                     "banInvalidClientValues" => 1, // some users can be banned injustly if inconsistencies are found.
