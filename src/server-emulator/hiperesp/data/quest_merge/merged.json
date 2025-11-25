@@ -70,5 +70,21 @@
         "type": 2,
         "itemId": 2279,
         "amount": 1
+	},
+    {
+        "id": 28,
+        "index": 12,
+        "value": 1,
+        "type": 0,
+        "itemId": 864,
+        "amount": 3
+	},
+    {
+        "id": 167,
+        "index": 18,
+        "value": 15,
+        "type": 2,
+        "itemId": 3727,
+        "amount": 3
 	}
 ]
