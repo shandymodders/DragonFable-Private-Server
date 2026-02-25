@@ -1,6 +1,27 @@
 [
     {
-        "id": 1,
+		"id": 0,
+		"name": "Home",
+		"description": "",
+		"complete": "",
+		"swf": "",
+		"swfX": "none",
+		"maxSilver": 0,
+		"maxGold": 0,
+		"maxGems": 0,
+		"maxExp": 0,
+		"minTime": 0,
+		"counter": 0,
+		"extra": "",
+		"dailyIndex": 0,
+		"dailyReward": 0,
+		"monsterMinLevel": 0,
+		"monsterMaxLevel": 0,
+		"monsterType": "",
+		"monsterGroupSwf": ""
+  },
+  {
+		"id": 1,
         "name": "Falconreach",
         "description": "There is no place like home!",
         "complete": "There is no place like home!",

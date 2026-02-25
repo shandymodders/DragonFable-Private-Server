@@ -1,6 +1,7 @@
 <?php
 namespace hiperesp\server\projection;
 
+use hiperesp\server\vo\CharacterVO;
 use hiperesp\server\vo\QuestVO;
 
 class TownProjection extends Projection {
@@ -22,6 +23,19 @@ class TownProjection extends Projection {
         $newTownEl->addAttribute('strQuestXFileName', $quest->swfX);
         $newTownEl->addAttribute('strExtra', $quest->extra);
 
+        return $xml;
+    }
+
+    public function changedHomeToHouse(CharacterVO $char): \SimpleXMLElement {
+        $xml = new \SimpleXMLElement('<changeHomeTown/>');
+        $newTownEl = $xml->addChild('newTown');
+
+        $equippedHouse = $char->getEquippedHouse();
+        $houseSwf = $equippedHouse ? $equippedHouse->getHouse()->swf : '';
+
+        $newTownEl->addAttribute('strQuestFileName', $houseSwf);
+        $newTownEl->addAttribute('strQuestXFileName', 'none');
+        $newTownEl->addAttribute('strExtra', '');
         return $xml;
     }
 

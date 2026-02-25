@@ -12,9 +12,54 @@ class CharacterItemModel extends Model {
 
     /** @return array<CharacterItemVO> */
     public function getByChar(CharacterVO $char): array {
-        $charItems = $this->storage->select(self::COLLECTION, ['charId' => $char->id], null);
-        return \array_map(fn($charItem) => new CharacterItemVO($charItem), $charItems);
+    $charItems = $this->storage->select(self::COLLECTION, ['charId' => $char->id], null);
+
+    if(\count($charItems) > 1) {
+        $itemIds = \array_map(
+            fn(array $charItem): int => (int)$charItem['itemId'],
+            $charItems
+        );
+
+        $items = $this->storage->select('item', ['id' => $itemIds], null);
+        $itemsById = [];
+        foreach($items as $item) {
+            $itemsById[(int)$item['id']] = $item;
+        }
+
+        \usort($charItems, function(array $left, array $right) use ($itemsById): int {
+            $leftItem = $itemsById[(int)$left['itemId']] ?? null;
+            $rightItem = $itemsById[(int)$right['itemId']] ?? null;
+
+            $leftCategoryId = (int)($leftItem['categoryId']);
+            $rightCategoryId = (int)($rightItem['categoryId']);
+            if($leftCategoryId !== $rightCategoryId) {
+                return $leftCategoryId <=> $rightCategoryId;
+            }
+
+            $leftEquipSpot = (string)($leftItem['equipSpot']);
+            $rightEquipSpot = (string)($rightItem['equipSpot']);
+            if($leftEquipSpot !== $rightEquipSpot) {
+                return $leftEquipSpot <=> $rightEquipSpot;
+            }
+
+            $leftLevel = (int)($leftItem['level']);
+            $rightLevel = (int)($rightItem['level']);
+            if($leftLevel !== $rightLevel) {
+                return $rightLevel <=> $leftLevel;
+            }
+
+            $leftItemId = (int)($leftItem['id']);
+            $rightItemId = (int)($rightItem['id']);
+            if($leftItemId !== $rightItemId) {
+                return $leftItemId <=> $rightItemId;
+            }
+
+            return ((int)$left['id']) <=> ((int)$right['id']);
+        });
     }
+
+    return \array_map(fn($charItem) => new CharacterItemVO($charItem), $charItems);
+}
 
     public function addItemToChar(CharacterVO $char, ItemVO $item): CharacterItemVO {
         if($item->maxStackSize > 1) {
@@ -82,6 +127,10 @@ class CharacterItemModel extends Model {
 
         foreach ($charItems as $charItem) {
             $isEquipped = in_array($charItem->id, $equippedItemIds);
+            $item = $charItem->getItem();
+            if ($item->equipSpot === 'Armor') {
+                $isEquipped = false;
+            }
 
             $this->storage->update(self::COLLECTION, [
                 'id' => $charItem->id,

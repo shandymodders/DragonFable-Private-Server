@@ -36,6 +36,11 @@ class TownController extends Controller {
     public function changeHome(\SimpleXMLElement $input): \SimpleXMLElement {
         $char = $this->characterService->auth($input);
 
+        if((int)$input->intTownID === 0) {
+            $this->townService->changeHomeToHouse($char);
+            return TownProjection::instance()->changedHomeToHouse($char);
+        }
+
         $town = $this->townService->load((int)$input->intTownID);
         $this->townService->changeHome($char, $town);
 

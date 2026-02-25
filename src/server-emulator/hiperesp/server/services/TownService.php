@@ -14,4 +14,8 @@ class TownService extends QuestService {
         $this->characterModel->changeHomeTown($char, $town);
     }
 
+    public function changeHomeToHouse(CharacterVO $char): void {
+        $this->characterModel->changeHomeToHouse($char);
+    }
+
 }

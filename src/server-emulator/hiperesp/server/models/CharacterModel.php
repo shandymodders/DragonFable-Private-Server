@@ -11,6 +11,8 @@ use hiperesp\server\vo\HairVO;
 use hiperesp\server\vo\QuestVO;
 use hiperesp\server\vo\SettingsVO;
 use hiperesp\server\vo\UserVO;
+use hiperesp\server\vo\CharacterHouseVO;
+use hiperesp\server\vo\CharHouseItemVO;
 
 class CharacterModel extends Model {
 
@@ -152,6 +154,33 @@ class CharacterModel extends Model {
         ]);
     }
 
+    public function refundHouse(CharacterVO $char, CharacterHouseVO $charHouse, int $returnPercent): void {
+        $house = $charHouse->getHouse();
+        $returnProportion = \min(100, \max(0, $returnPercent)) / 100;
+        $this->storage->update(self::COLLECTION, [
+            'id'    => $char->id,
+            'gold'  => \ceil($char->gold  + $house->getPriceGold()  * $returnProportion),
+            'coins' => \ceil($char->coins + $house->getPriceCoins() * $returnProportion),
+        ]);
+    }
+
+    public function refundHouseItem(CharacterVO $char, CharHouseItemVO $charHouseItem, int $returnPercent): void {
+        $houseItem = $charHouseItem->getHouseItem();
+
+        $returnPercent = \min(100, \max(0, $returnPercent));
+        $returnProportion = $returnPercent / 100;
+
+        $this->storage->update(self::COLLECTION, [
+            'id'    => $char->id,
+            'gold'  => \ceil($char->gold  + $houseItem->getPriceGold()  * $returnProportion),
+            'coins' => \ceil($char->coins + $houseItem->getPriceCoins() * $returnProportion),
+        ]);
+    }
+
+    public function getByCharHouseItem(CharHouseItemVO $charHouseItem): CharacterVO {
+        return $this->getById($charHouseItem->charId);
+    }
+
     public function delete(CharacterVO $char): void {
         $this->storage->delete(self::COLLECTION, ['id' => $char->id]);
     }
@@ -160,6 +189,13 @@ class CharacterModel extends Model {
         $this->storage->update(self::COLLECTION, [
             'id' => $char->id,
             'questId' => $town->id
+        ]);
+    }
+
+    public function changeHomeToHouse(CharacterVO $char): void {
+        $this->storage->update(self::COLLECTION, [
+            'id'      => $char->id,
+            'questId' => 0,
         ]);
     }
 
@@ -305,6 +341,14 @@ class CharacterModel extends Model {
             'id' => $char->id,
             'coins' => $char->coins - $cost,
             'bagSlots' => $char->bagSlots + $slots
+        ]);
+    }
+
+    public function buyHouseItemSlots(CharacterVO $char, int $slots, int $cost): void {
+        $this->storage->update(self::COLLECTION, [
+            'id'             => $char->id,
+            'coins'          => $char->coins - $cost,
+            'houseItemSlots' => $char->houseItemSlots + $slots
         ]);
     }
 

@@ -1,7 +1,10 @@
 <?php declare(strict_types=1);
 namespace hiperesp\server\vo;
 
-class HouseVO extends ValueObject {
+use hiperesp\server\enums\Currency;
+use hiperesp\server\interfaces\Purchasable;
+
+class HouseVO extends ValueObject implements Purchasable {
 
     public readonly string $name;
     public readonly string $description;
@@ -32,5 +35,13 @@ class HouseVO extends ValueObject {
     public readonly int $maxGuards;
     public readonly int $maxRooms;
     public readonly int $maxExtItems;
+
+    public function getPriceGold(): int {
+        return $this->currency === Currency::GOLD ? $this->cost : 0;
+    }
+
+    public function getPriceCoins(): int {
+        return $this->currency === Currency::DRAGON_COINS ? $this->cost : 0;
+    }
 
 }

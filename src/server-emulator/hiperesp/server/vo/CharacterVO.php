@@ -5,16 +5,20 @@ use hiperesp\server\attributes\Inject;
 use hiperesp\server\interfaces\Bannable;
 use hiperesp\server\interfaces\Purchasable;
 use hiperesp\server\models\CharacterItemModel;
+use hiperesp\server\models\CharacterHouseModel;
 use hiperesp\server\models\ClassModel;
 use hiperesp\server\models\DragonModel;
 use hiperesp\server\models\HairModel;
 use hiperesp\server\models\RaceModel;
 use hiperesp\server\models\TownModel;
 use hiperesp\server\models\UserModel;
+use hiperesp\server\models\CharHouseItemModel;
 
 class CharacterVO extends ValueObject implements Bannable {
 
     #[Inject] private CharacterItemModel $characterItemModel;
+    #[Inject] private CharHouseItemModel $charHouseItemModel;
+    #[Inject] private CharacterHouseModel $characterHouseModel;
     #[Inject] private ClassModel $classModel;
     #[Inject] private DragonModel $dragonModel;
     #[Inject] private HairModel $hairModel;
@@ -22,6 +26,7 @@ class CharacterVO extends ValueObject implements Bannable {
     #[Inject] private TownModel $townModel;
     #[Inject] private UserModel $userModel;
     #[Inject] private SettingsVO $settings;
+
 
     #[\Override]
     protected function patch(array $data): array {
@@ -50,6 +55,8 @@ class CharacterVO extends ValueObject implements Bannable {
     public readonly bool $hasDragon;
     public readonly int $bagSlots;
     public readonly int $bankSlots;
+    public readonly int $houseSlots;
+    public readonly int $houseItemSlots;
     public readonly bool $pvpStatus;
 
     public readonly string $gender;
@@ -105,7 +112,7 @@ class CharacterVO extends ValueObject implements Bannable {
             if($expToLevel <= $this->experience) {
                 $expToLevel = $this->experience + 1;
             }
-            return $expToLevel;
+            return (int) $expToLevel;
         }
     }
 
@@ -132,39 +139,37 @@ class CharacterVO extends ValueObject implements Bannable {
         }
     }
 
-    //public int $maxBagSlots {
-        //get {
-            //if($this->accessLevel > 0) {
-                //return $this->settings->upgradedMaxBagSlots;
-            //}
-            //return $this->settings->nonUpgradedMaxBagSlots;
-        //}
-    //}
+    public int $maxBagSlots {
+        get {
+            if($this->accessLevel > 0) {
+                return $this->settings->upgradedMaxBagSlots;
+            }
+            return $this->settings->nonUpgradedMaxBagSlots;
+        }
+    }
 
-    //public int $maxBankSlots {
-        //get {
-            //if($this->accessLevel > 0) {
-                //return $this->settings->upgradedMaxBankSlots;
-            //}
-            //return $this->settings->nonUpgradedMaxBankSlots;
-        //}
-    //}
+    public int $maxBankSlots {
+        get {
+            if($this->accessLevel > 0) {
+                return $this->settings->upgradedMaxBankSlots;
+            }
+            return $this->settings->nonUpgradedMaxBankSlots;
+        }
+    }
 
     public int $maxHouseSlots {
         get {
-            if($this->accessLevel > 0) {
-                return $this->settings->upgradedMaxHouseSlots;
-            }
-            return $this->settings->nonUpgradedMaxHouseSlots;
+            return $this->accessLevel > 0
+                ? $this->settings->upgradedMaxHouseSlots
+                : $this->settings->nonUpgradedMaxHouseSlots;
         }
     }
 
     public int $maxHouseItemSlots {
         get {
-            if($this->accessLevel > 0) {
-                return $this->settings->upgradedMaxHouseItemSlots;
-            }
-            return $this->settings->nonUpgradedMaxHouseItemSlots;
+            return $this->accessLevel > 0
+                ? $this->settings->upgradedMaxHouseItemSlots
+                : $this->settings->nonUpgradedMaxHouseItemSlots;
         }
     }
 
@@ -221,6 +226,31 @@ class CharacterVO extends ValueObject implements Bannable {
     }
 
     public function getTown(): QuestVO {
+        if($this->questId === 0) {
+            $equippedHouse = $this->getEquippedHouse();
+            $houseSwf = $equippedHouse ? $equippedHouse->getHouse()->swf : '';
+            return new QuestVO([
+                'id'             => 0,
+                'name'           => 'Home',
+                'swf'            => $houseSwf,
+                'swfX'           => 'none',
+                'extra'          => '',
+                'description'    => '',
+                'complete'       => '',
+                'maxSilver'      => 0,
+                'maxGold'        => 0,
+                'maxGems'        => 0,
+                'maxExp'         => 0,
+                'minTime'        => 0,
+                'counter'        => 0,
+                'dailyIndex'     => 0,
+                'dailyReward'    => 0,
+                'monsterMinLevel'  => 0,
+                'monsterMaxLevel'  => 0,
+                'monsterType'      => '',
+                'monsterGroupSwf'  => '',
+            ]);
+        }
         return $this->townModel->getByChar($this);
     }
 
@@ -237,8 +267,17 @@ class CharacterVO extends ValueObject implements Bannable {
         return $this->characterItemModel->getByChar($this);
     }
 
+    /** @return array<CharHouseItemVO> */
+    public function getHouseItems(): array {
+        return $this->charHouseItemModel->getByChar($this);
+    }
+
     public function getDragon(): array {
         return $this->dragonModel->getByChar($this);
+    }
+
+    public function getEquippedHouse(): ?CharacterHouseVO {
+        return $this->characterHouseModel->getEquippedByChar($this);
     }
 
 }

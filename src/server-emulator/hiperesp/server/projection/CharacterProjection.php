@@ -43,6 +43,10 @@ class CharacterProjection extends Projection {
         $charEl->addAttribute('strCharacterName', $char->name);
         $charEl->addAttribute('dateCreated', \date('Y-m-d\TH:i:s', \strtotime($char->createdAt)));
         $charEl->addAttribute('isBirthday', $char->isBirthday() ? '1' : '0');
+        $equippedHouse = $char->getEquippedHouse();
+        if ($equippedHouse !== null) {
+            $charEl->addAttribute('intHouseID', $equippedHouse->houseId);
+        }
         $charEl->addAttribute('intLevel', $char->level);
         $charEl->addAttribute('intExp', $char->experience);
         $charEl->addAttribute('intHP', $char->hitPoints);
@@ -53,8 +57,8 @@ class CharacterProjection extends Projection {
         $charEl->addAttribute('intCoins', $char->coins);
         $charEl->addAttribute('intMaxBagSlots', $char->bagSlots);
         $charEl->addAttribute('intMaxBankSlots', $char->bankSlots);
-        $charEl->addAttribute('intMaxHouseSlots', $char->maxHouseSlots);
-        $charEl->addAttribute('intMaxHouseItemSlots', $char->maxHouseItemSlots);
+        $charEl->addAttribute('intMaxHouseSlots', $char->houseSlots);
+        $charEl->addAttribute('intMaxHouseItemSlots', $char->houseItemSlots);
         $charEl->addAttribute('intDragonAmulet', $char->dragonAmulet ? 1 : 0);
         $charEl->addAttribute('intAccesslevel', $char->accessLevel);
         $charEl->addAttribute('strGender', $char->gender);
@@ -189,6 +193,38 @@ class CharacterProjection extends Projection {
             $itemEl->addAttribute('intBlock', $item->block);
             $itemEl->addAttribute('strResists', $item->resists);
         }
+
+        foreach($char->getHouseItems() as $charHouseItem) {
+            $houseItem = $charHouseItem->getHouseItem();
+            $houseItemEl = $charEl->addChild('houseitems');
+
+            $houseItemEl->addAttribute('HouseItemID', (string)$houseItem->id);
+            $houseItemEl->addAttribute('CharHouseItemID', (string)$charHouseItem->id);
+            $houseItemEl->addAttribute('strItemName', $houseItem->name);
+            $houseItemEl->addAttribute('strItemDescription', $houseItem->description);
+            $houseItemEl->addAttribute('bitVisible', (string)$houseItem->visible);
+            $houseItemEl->addAttribute('bitDestroyable', (string)$houseItem->destroyable);
+            $houseItemEl->addAttribute('bitEquippable', (string)$houseItem->equippable);
+            $houseItemEl->addAttribute('bitRandomDrop', (string)$houseItem->randomDrop);
+            $houseItemEl->addAttribute('bitSellable', (string)$houseItem->sellable);
+            $houseItemEl->addAttribute('bitDragonAmulet', (string)$houseItem->dragonAmulet);
+            $houseItemEl->addAttribute('intCost', (string)$houseItem->cost);
+            $houseItemEl->addAttribute('intCurrency', (string)$houseItem->currency);
+            $houseItemEl->addAttribute('intMaxStackSize', (string)$houseItem->maxStackSize);
+            $houseItemEl->addAttribute('intRarity', (string)$houseItem->rarity);
+            $houseItemEl->addAttribute('intLevel', (string)$houseItem->level);
+            $houseItemEl->addAttribute('intMaxlevel', (string)$houseItem->maxLevel);
+            $houseItemEl->addAttribute('intCategory', (string)$houseItem->category);
+            $houseItemEl->addAttribute('intEquipSpot', (string)$houseItem->equipSpot);
+            $houseItemEl->addAttribute('intType', (string)$houseItem->itemType);
+            $houseItemEl->addAttribute('bitRandom', (string)$houseItem->random);
+            $houseItemEl->addAttribute('intElement', (string)$houseItem->element);
+            $houseItemEl->addAttribute('strType', $houseItem->type);
+            $houseItemEl->addAttribute('strFileName', $houseItem->swf);
+            $houseItemEl->addAttribute('intEquipSlotPos', (string)$charHouseItem->equipSlotPos);
+            $houseItemEl->addAttribute('intHoursOwned', (string)$charHouseItem->hoursOwned);
+        }
+
         $dragon = $char->getDragon();
         if(isset($dragon['id'])) {
             $dragonEl = $charEl->addChild('dragon');
@@ -424,6 +460,12 @@ class CharacterProjection extends Projection {
         $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><BuyBagSlots xmlns:sql="urn:schemas-microsoft-com:xml-sql"/>');
         $xml->addChild('status', 'SUCCESS');
 
+        return $xml;
+    }
+
+    public function houseItemSlotsBought(CharacterVO $char): \SimpleXMLElement {
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><BuyHouseItemSlots xmlns:sql="urn:schemas-microsoft-com:xml-sql"/>');
+        $xml->addChild('status', 'SUCCESS');
         return $xml;
     }
 

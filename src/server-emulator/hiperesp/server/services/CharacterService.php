@@ -241,6 +241,60 @@ class CharacterService extends Service {
         $this->characterModel->buyBagSlots($char, $slots, $cost);
     }
 
+    public function buyHouseItemSlots1(CharacterVO $char, int $slots): void {
+        $defaultHouseItemSlots = $char->dragonAmulet ? 20 : 10;
+
+        if(($slots + $char->houseItemSlots) > ($defaultHouseItemSlots + 10)) {
+            throw new DFException(DFException::BAD_REQUEST);
+        }
+
+        $cost = 100 * $slots;
+        if($char->coins < $cost) {
+            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyHouseItemSlots1', "Not enough dragon coins to buy slot(s).", $char, $char, [
+                'coins' => $char->coins,
+                'cost'  => $cost
+            ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+        }
+
+        $this->characterModel->buyHouseItemSlots($char, $slots, $cost);
+    }
+
+    public function buyHouseItemSlots2(CharacterVO $char, int $slots): void {
+        $defaultHouseItemSlots = $char->dragonAmulet ? 20 : 10;
+
+        if(($slots + $char->houseItemSlots) > ($defaultHouseItemSlots + 15)) {
+            throw new DFException(DFException::BAD_REQUEST);
+        }
+
+        $cost = 300 * $slots;
+        if($char->coins < $cost) {
+            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyHouseItemSlots2', "Not enough dragon coins to buy slot(s).", $char, $char, [
+                'coins' => $char->coins,
+                'cost'  => $cost
+            ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+        }
+
+        $this->characterModel->buyHouseItemSlots($char, $slots, $cost);
+    }
+
+    public function buyHouseItemSlots3(CharacterVO $char, int $slots): void {
+        $defaultHouseItemSlots = $char->dragonAmulet ? 20 : 10;
+
+        if(($slots + $char->houseItemSlots) > ($defaultHouseItemSlots + 25)) {
+            throw new DFException(DFException::BAD_REQUEST);
+        }
+
+        $cost = 500 * $slots;
+        if($char->coins < $cost) {
+            throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'buyHouseItemSlots3', "Not enough dragon coins to buy slot(s).", $char, $char, [
+                'coins' => $char->coins,
+                'cost'  => $cost
+            ])->asException(DFException::DRAGONCOINS_NOT_ENOUGH);
+        }
+
+        $this->characterModel->buyHouseItemSlots($char, $slots, $cost);
+    }
+
     public function subtractGold(CharacterVO $char, int $goldCost): void {
         if($goldCost > $char->gold) {
             throw $this->logsModel->register(LogsModel::SEVERITY_BLOCKED, 'subtractGold', "Not enough gold.", $char, $char, [

@@ -69,8 +69,8 @@ final class Definition {
 
                     "serverName"            => "DragonFable Private Server",
 
-                    "gameSwf"               => "game15_9_52.swf",
-                    "serverVersion"         => "DFPS 15.9.52", // appears in the game client version, only display
+                    "gameSwf"               => "game15_9_53.swf",
+                    "serverVersion"         => "DFPS 15.9.53", // appears in the game client version, only display
                     //                                this is the ^ last visible char (aprox. 19 chars)
                     "serverLocation"        => "server-emulator/server.php/", // You can also use something like "http://localhost:40000/server-emulator/server.php/";
                     "gamefilesPath"         => "cdn/gamefiles/cache.php/",   // You can also use something like "http://localhost:40000/cdn/gamefiles/cache.php/";
@@ -382,6 +382,8 @@ final class Definition {
                 "hasDragon"            => [ 'INTEGER', 'DEFAULT' => 0 ],
                 "bagSlots"            => [ 'INTEGER', 'DEFAULT' => 30 ],
                 "bankSlots"            => [ 'INTEGER', 'DEFAULT' => 0 ],
+                "houseSlots"        => [ 'INTEGER', 'DEFAULT' => 5 ],
+                "houseItemSlots"    => [ 'INTEGER', 'DEFAULT' => 20 ],
                 "pvpStatus"         => [ 'INTEGER', 'DEFAULT' => 0 ],
 
                 "gender"            => [ 'CHAR' => 1 ], // M or F
@@ -572,6 +574,82 @@ final class Definition {
                 "houseId"       => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "house", "field" => "id" ] ],
             ],
             "data" => "houseShop_house/",
+        ],
+        "char_house" => [
+            "migrateOldData" => true,
+            "structure" => [
+                "id"        => [ 'INTEGER', 'GENERATED', 'PRIMARY_KEY' ],
+                "charId"    => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "char", "field" => "id" ] ],
+                "houseId"   => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "house", "field" => "id" ] ],
+                "createdAt" => [ 'DATETIME', 'CREATED_DATETIME' ],
+                "updatedAt" => [ 'DATETIME', 'UPDATED_DATETIME' ],
+                "equipped"  => [ 'BIT', 'DEFAULT' => 0 ],
+            ],
+            "data" => [],
+        ],
+        "houseItem" => [
+            "migrateOldData" => false,
+            "structure" => [
+                "id"            => [ 'INTEGER', 'PRIMARY_KEY' ],
+                "name"          => [ 'STRING' => 255, 'DEFAULT' => "" ],
+                "description"   => [ 'STRING' => 255, 'DEFAULT' => "" ],
+                "visible"       => [ 'BIT', 'DEFAULT' => 1 ],
+                "destroyable"   => [ 'BIT', 'DEFAULT' => 1 ],
+                "equippable"    => [ 'BIT', 'DEFAULT' => 1 ],
+                "randomDrop"    => [ 'BIT', 'DEFAULT' => 1 ],
+                "sellable"      => [ 'BIT', 'DEFAULT' => 1 ],
+                "dragonAmulet"  => [ 'BIT', 'DEFAULT' => 1 ],
+                "enc"           => [ 'BIT', 'DEFAULT' => 0 ],
+                "cost"          => [ 'INTEGER', 'DEFAULT' => 0 ],
+                "currency"      => [ 'INTEGER', 'DEFAULT' => 2 ],
+                "maxStackSize"  => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "rarity"        => [ 'INTEGER', 'DEFAULT' => 0 ],
+                "level"         => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "maxLevel"      => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "category"      => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "equipSpot"     => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "itemType"      => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "type"          => [ 'STRING' => 255, 'DEFAULT' => "" ],  // strType
+                "random"        => [ 'BIT', 'DEFAULT' => 0 ],
+                "element"       => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "swf"           => [ 'STRING' => 255, 'DEFAULT' => "" ],
+                "icon"          => [ 'STRING' => 255, 'DEFAULT' => "" ],
+                "region"        => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "theme"         => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "size"          => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "refId"         => [ 'INTEGER', 'DEFAULT' => 0 ],
+            ],
+            "data" => "houseItem/",
+        ],
+        "houseItemShop" => [
+            "migrateOldData" => false,
+            "structure" => [
+                "id"    => [ 'INTEGER', 'PRIMARY_KEY' ],
+                "name"  => [ 'STRING' => 255, 'DEFAULT' => "" ],
+            ],
+            "data" => "houseItemShop/",
+        ],
+        "houseItemShop_houseItem" => [
+            "migrateOldData" => false,
+            "structure" => [
+                "id"              => [ 'INTEGER', 'GENERATED', 'PRIMARY_KEY' ],
+                "houseItemShopId" => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "houseItemShop", "field" => "id" ] ],
+                "houseItemId"     => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "houseItem",     "field" => "id" ] ],
+            ],
+            "data" => "houseItemShop_houseItem/",
+        ],
+        "char_houseItem" => [
+            "migrateOldData" => true,
+            "structure" => [
+                "id"          => [ 'INTEGER', 'GENERATED', 'PRIMARY_KEY' ],
+                "charId"      => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "char", "field" => "id" ] ],
+                "houseItemId" => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "houseItem", "field" => "id" ] ],
+                "createdAt"   => [ 'DATETIME', 'CREATED_DATETIME' ],
+                "updatedAt"   => [ 'DATETIME', 'UPDATED_DATETIME' ],
+                "equipSlotPos"=> [ 'INTEGER', 'DEFAULT' => 0 ],
+                "count"       => [ 'INTEGER', 'DEFAULT' => 1 ],
+            ],
+            "data" => [],
         ],
         "logs" => [
             "migrateOldData" => true,

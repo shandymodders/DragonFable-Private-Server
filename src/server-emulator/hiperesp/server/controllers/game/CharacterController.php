@@ -214,6 +214,39 @@ class CharacterController extends Controller {
     }
 
     #[Request(
+        endpoint: '/cf-buyHouseItemSlots1.asp',
+        inputType: Input::NINJA2,
+        outputType: Output::XML
+    )]
+    public function buyHouseItemSlots1(\SimpleXMLElement $input): \SimpleXMLElement {
+        $char = $this->characterService->auth($input);
+        $this->characterService->buyHouseItemSlots1($char, (int)$input->intNumSlots);
+        return CharacterProjection::instance()->houseItemSlotsBought($char);
+    }
+
+    #[Request(
+        endpoint: '/cf-buyHouseItemSlots2.asp',
+        inputType: Input::NINJA2,
+        outputType: Output::XML
+    )]
+    public function buyHouseItemSlots2(\SimpleXMLElement $input): \SimpleXMLElement {
+        $char = $this->characterService->auth($input);
+        $this->characterService->buyHouseItemSlots2($char, (int)$input->intNumSlots);
+        return CharacterProjection::instance()->houseItemSlotsBought($char);
+    }
+
+    #[Request(
+        endpoint: '/cf-buyHouseItemSlots3.asp',
+        inputType: Input::NINJA2,
+        outputType: Output::XML
+    )]
+    public function buyHouseItemSlots3(\SimpleXMLElement $input): \SimpleXMLElement {
+        $char = $this->characterService->auth($input);
+        $this->characterService->buyHouseItemSlots3($char, (int)$input->intNumSlots);
+        return CharacterProjection::instance()->houseItemSlotsBought($char);
+    }
+
+    #[Request(
         endpoint: '/cf-expsave.asp',
         inputType: Input::NINJA2,
         outputType: Output::NINJA2XML

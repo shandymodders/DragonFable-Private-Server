@@ -1389,6 +1389,16 @@
         "armorId": 9800653,
         "weaponId": 9800652
     },
+	{
+		"id": 164,
+		"name": "test",
+		"element": "Darkness",
+		"equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+		"swf": "class-fleshweaver.swf?ver=18",
+		"savable": 0,
+		"armorId": 9800657,
+		"weaponId": 9800656
+	},	
     {
         "id": 1001,
         "name": "Warrior 1.0",
