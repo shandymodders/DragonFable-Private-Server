@@ -4178,5 +4178,70 @@
         "id": 852,
         "name": "EH Loot for DCs",
         "count": -100
+    },
+    {
+        "id": 853,
+        "name": "NMs Loot for DCs",
+        "count": -100
+    },
+    {
+        "id": 854,
+        "name": "Weapons of Tears",
+        "count": -100
+    },
+    {
+        "id": 855,
+        "name": "aCR Loot for DCs",
+        "count": -100
+    },
+    {
+        "id": 856,
+        "name": "DracoLich Ex Token",
+        "count": -100
+    },
+    {
+        "id": 857,
+        "name": "aHGC Loot for DCs",
+        "count": -100
+    },
+    {
+        "id": 858,
+        "name": "CD Loot for DCs",
+        "count": -100
+    },
+    {
+        "id": 859,
+        "name": "tQLH Loot for DCs",
+        "count": -100
+    },
+    {
+        "id": 860,
+        "name": "Pirate Stash",
+        "count": -100
+    },
+    {
+        "id": 861,
+        "name": "Ninja Stash",
+        "count": -100
+    },
+    {
+        "id": 862,
+        "name": "Anniversary Keys",
+        "count": -100
+    },
+    {
+        "id": 863,
+        "name": "TSoY Loot for DCs",
+        "count": -100
+    },
+    {
+        "id": 864,
+        "name": "Cooperation Loot for DCs",
+        "count": -100
+    },
+    {
+        "id": 865,
+        "name": "Shattered Blade",
+        "count": -100
     }
 ]

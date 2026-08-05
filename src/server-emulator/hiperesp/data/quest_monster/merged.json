@@ -42405,11 +42405,6 @@
         "monsterId": 1689
     },
     {
-        "id": 8482,
-        "questId": 5000,
-        "monsterId": 279
-    },
-    {
         "id": 8483,
         "questId": 2252,
         "monsterId": 85
@@ -43269,7 +43264,7 @@
         "questId": 2296,
         "monsterId": 186
     },
-	{
+    {
         "id": 8655,
         "questId": 2297,
         "monsterId": 1700
@@ -43368,5 +43363,885 @@
         "id": 8674,
         "questId": 2302,
         "monsterId": 1705
+    },
+    {
+        "id": 8686,
+        "questId": 2303,
+        "monsterId": 33
+    },
+    {
+        "id": 8687,
+        "questId": 2303,
+        "monsterId": 147
+    },
+    {
+        "id": 8688,
+        "questId": 2303,
+        "monsterId": 148
+    },
+    {
+        "id": 8689,
+        "questId": 2303,
+        "monsterId": 149
+    },
+    {
+        "id": 8690,
+        "questId": 2303,
+        "monsterId": 150
+    },
+    {
+        "id": 8691,
+        "questId": 2304,
+        "monsterId": 1706
+    },
+    {
+        "id": 8692,
+        "questId": 2304,
+        "monsterId": 1707
+    },
+    {
+        "id": 8693,
+        "questId": 2305,
+        "monsterId": 1706
+    },
+    {
+        "id": 8694,
+        "questId": 2305,
+        "monsterId": 1707
+    },
+    {
+        "id": 8695,
+        "questId": 2306,
+        "monsterId": 1706
+    },
+    {
+        "id": 8696,
+        "questId": 2306,
+        "monsterId": 1707
+    },
+    {
+        "id": 8697,
+        "questId": 2308,
+        "monsterId": 32
+    },
+    {
+        "id": 8698,
+        "questId": 2308,
+        "monsterId": 31
+    },
+    {
+        "id": 8699,
+        "questId": 2308,
+        "monsterId": 42
+    },
+    {
+        "id": 8700,
+        "questId": 2308,
+        "monsterId": 45
+    },
+    {
+        "id": 8701,
+        "questId": 2308,
+        "monsterId": 1300
+    },
+    {
+        "id": 8702,
+        "questId": 2308,
+        "monsterId": 1710
+    },
+    {
+        "id": 8703,
+        "questId": 2308,
+        "monsterId": 1711
+    },
+    {
+        "id": 8704,
+        "questId": 2308,
+        "monsterId": 1712
+    },
+    {
+        "id": 8705,
+        "questId": 2308,
+        "monsterId": 141
+    },
+    {
+        "id": 8706,
+        "questId": 2308,
+        "monsterId": 920
+    },
+    {
+        "id": 8707,
+        "questId": 2308,
+        "monsterId": 921
+    },
+    {
+        "id": 8708,
+        "questId": 2308,
+        "monsterId": 922
+    },
+    {
+        "id": 8709,
+        "questId": 2308,
+        "monsterId": 959
+    },
+    {
+        "id": 8710,
+        "questId": 2308,
+        "monsterId": 1708
+    },
+    {
+        "id": 8711,
+        "questId": 2308,
+        "monsterId": 1709
+    },
+    {
+        "id": 8712,
+        "questId": 2308,
+        "monsterId": 923
+    },
+    {
+        "id": 8713,
+        "questId": 2308,
+        "monsterId": 1713
+    },
+    {
+        "id": 8714,
+        "questId": 2309,
+        "monsterId": 32
+    },
+    {
+        "id": 8715,
+        "questId": 2309,
+        "monsterId": 31
+    },
+    {
+        "id": 8716,
+        "questId": 2309,
+        "monsterId": 42
+    },
+    {
+        "id": 8717,
+        "questId": 2309,
+        "monsterId": 45
+    },
+    {
+        "id": 8718,
+        "questId": 2309,
+        "monsterId": 1300
+    },
+    {
+        "id": 8719,
+        "questId": 2309,
+        "monsterId": 1710
+    },
+    {
+        "id": 8720,
+        "questId": 2309,
+        "monsterId": 1711
+    },
+    {
+        "id": 8721,
+        "questId": 2309,
+        "monsterId": 1712
+    },
+    {
+        "id": 8722,
+        "questId": 2309,
+        "monsterId": 141
+    },
+    {
+        "id": 8723,
+        "questId": 2309,
+        "monsterId": 920
+    },
+    {
+        "id": 8724,
+        "questId": 2309,
+        "monsterId": 921
+    },
+    {
+        "id": 8725,
+        "questId": 2309,
+        "monsterId": 922
+    },
+    {
+        "id": 8726,
+        "questId": 2309,
+        "monsterId": 959
+    },
+    {
+        "id": 8727,
+        "questId": 2309,
+        "monsterId": 1708
+    },
+    {
+        "id": 8728,
+        "questId": 2309,
+        "monsterId": 1709
+    },
+    {
+        "id": 8729,
+        "questId": 2309,
+        "monsterId": 923
+    },
+    {
+        "id": 8730,
+        "questId": 2309,
+        "monsterId": 1713
+    },
+    {
+        "id": 8731,
+        "questId": 2311,
+        "monsterId": 32
+    },
+    {
+        "id": 8732,
+        "questId": 2311,
+        "monsterId": 31
+    },
+    {
+        "id": 8733,
+        "questId": 2311,
+        "monsterId": 42
+    },
+    {
+        "id": 8734,
+        "questId": 2311,
+        "monsterId": 45
+    },
+    {
+        "id": 8735,
+        "questId": 2311,
+        "monsterId": 1300
+    },
+    {
+        "id": 8736,
+        "questId": 2311,
+        "monsterId": 1710
+    },
+    {
+        "id": 8737,
+        "questId": 2311,
+        "monsterId": 1711
+    },
+    {
+        "id": 8738,
+        "questId": 2311,
+        "monsterId": 1712
+    },
+    {
+        "id": 8739,
+        "questId": 2311,
+        "monsterId": 141
+    },
+    {
+        "id": 8740,
+        "questId": 2311,
+        "monsterId": 920
+    },
+    {
+        "id": 8741,
+        "questId": 2311,
+        "monsterId": 921
+    },
+    {
+        "id": 8742,
+        "questId": 2311,
+        "monsterId": 922
+    },
+    {
+        "id": 8743,
+        "questId": 2311,
+        "monsterId": 959
+    },
+    {
+        "id": 8744,
+        "questId": 2311,
+        "monsterId": 1708
+    },
+    {
+        "id": 8745,
+        "questId": 2311,
+        "monsterId": 1709
+    },
+    {
+        "id": 8746,
+        "questId": 2311,
+        "monsterId": 923
+    },
+    {
+        "id": 8747,
+        "questId": 2311,
+        "monsterId": 1713
+    },
+    {
+        "id": 8748,
+        "questId": 2312,
+        "monsterId": 1368
+    },
+    {
+        "id": 8749,
+        "questId": 2312,
+        "monsterId": 1369
+    },
+    {
+        "id": 8750,
+        "questId": 2312,
+        "monsterId": 1370
+    },
+    {
+        "id": 8751,
+        "questId": 2312,
+        "monsterId": 1371
+    },
+    {
+        "id": 8752,
+        "questId": 2312,
+        "monsterId": 1386
+    },
+    {
+        "id": 8753,
+        "questId": 2312,
+        "monsterId": 1385
+    },
+    {
+        "id": 8754,
+        "questId": 2312,
+        "monsterId": 1387
+    },
+    {
+        "id": 8755,
+        "questId": 2312,
+        "monsterId": 303
+    },
+    {
+        "id": 8756,
+        "questId": 2312,
+        "monsterId": 118
+    },
+    {
+        "id": 8757,
+        "questId": 2312,
+        "monsterId": 1690
+    },
+    {
+        "id": 8758,
+        "questId": 2312,
+        "monsterId": 1714
+    },
+    {
+        "id": 8759,
+        "questId": 2314,
+        "monsterId": 1715
+    },
+    {
+        "id": 8760,
+        "questId": 2314,
+        "monsterId": 1716
+    },
+    {
+        "id": 8761,
+        "questId": 2314,
+        "monsterId": 1717
+    },
+    {
+        "id": 8762,
+        "questId": 2314,
+        "monsterId": 1718
+    },
+    {
+        "id": 8763,
+        "questId": 2314,
+        "monsterId": 1719
+    },
+    {
+        "id": 8764,
+        "questId": 2315,
+        "monsterId": 1714
+    },
+    {
+        "id": 8765,
+        "questId": 2315,
+        "monsterId": 1387
+    },
+    {
+        "id": 8766,
+        "questId": 2315,
+        "monsterId": 1720
+    },
+    {
+        "id": 8767,
+        "questId": 2315,
+        "monsterId": 1721
+    },
+    {
+        "id": 8768,
+        "questId": 2316,
+        "monsterId": 45
+    },
+    {
+        "id": 8769,
+        "questId": 2316,
+        "monsterId": 44
+    },
+    {
+        "id": 8770,
+        "questId": 2316,
+        "monsterId": 84
+    },
+    {
+        "id": 8771,
+        "questId": 2316,
+        "monsterId": 1723
+    },
+    {
+        "id": 8772,
+        "questId": 2316,
+        "monsterId": 1722
+    },
+    {
+        "id": 8773,
+        "questId": 2318,
+        "monsterId": 1724
+    },
+    {
+        "id": 8774,
+        "questId": 2318,
+        "monsterId": 1725
+    },
+    {
+        "id": 8775,
+        "questId": 2319,
+        "monsterId": 1724
+    },
+    {
+        "id": 8776,
+        "questId": 2319,
+        "monsterId": 1725
+    },
+    {
+        "id": 8777,
+        "questId": 2320,
+        "monsterId": 1724
+    },
+    {
+        "id": 8778,
+        "questId": 2320,
+        "monsterId": 1725
+    },
+    {
+        "id": 8779,
+        "questId": 2321,
+        "monsterId": 1726
+    },
+    {
+        "id": 8780,
+        "questId": 2322,
+        "monsterId": 1
+    },
+    {
+        "id": 8781,
+        "questId": 2322,
+        "monsterId": 2
+    },
+    {
+        "id": 8782,
+        "questId": 2322,
+        "monsterId": 3
+    },
+    {
+        "id": 8783,
+        "questId": 2322,
+        "monsterId": 14
+    },
+    {
+        "id": 8784,
+        "questId": 2322,
+        "monsterId": 118
+    },
+    {
+        "id": 8785,
+        "questId": 2322,
+        "monsterId": 338
+    },
+    {
+        "id": 8786,
+        "questId": 2322,
+        "monsterId": 339
+    },
+    {
+        "id": 8787,
+        "questId": 2322,
+        "monsterId": 336
+    },
+    {
+        "id": 8788,
+        "questId": 2322,
+        "monsterId": 1727
+    },
+    {
+        "id": 8789,
+        "questId": 2323,
+        "monsterId": 196
+    },
+    {
+        "id": 8790,
+        "questId": 2323,
+        "monsterId": 197
+    },
+    {
+        "id": 8791,
+        "questId": 2323,
+        "monsterId": 205
+    },
+    {
+        "id": 8792,
+        "questId": 2323,
+        "monsterId": 206
+    },
+    {
+        "id": 8793,
+        "questId": 2323,
+        "monsterId": 194
+    },
+    {
+        "id": 8794,
+        "questId": 2323,
+        "monsterId": 203
+    },
+    {
+        "id": 8795,
+        "questId": 2323,
+        "monsterId": 1728
+    },
+    {
+        "id": 8796,
+        "questId": 2323,
+        "monsterId": 1729
+    },
+    {
+        "id": 8797,
+        "questId": 2324,
+        "monsterId": 1730
+    },
+    {
+        "id": 8798,
+        "questId": 2324,
+        "monsterId": 1731
+    },
+    {
+        "id": 8799,
+        "questId": 2324,
+        "monsterId": 1732
+    },
+    {
+        "id": 8800,
+        "questId": 2324,
+        "monsterId": 1733
+    },
+    {
+        "id": 8801,
+        "questId": 2325,
+        "monsterId": 1730
+    },
+    {
+        "id": 8802,
+        "questId": 2325,
+        "monsterId": 1731
+    },
+    {
+        "id": 8803,
+        "questId": 2325,
+        "monsterId": 1732
+    },
+    {
+        "id": 8804,
+        "questId": 2325,
+        "monsterId": 1733
+    },
+    {
+        "id": 8805,
+        "questId": 2326,
+        "monsterId": 1730
+    },
+    {
+        "id": 8806,
+        "questId": 2326,
+        "monsterId": 1731
+    },
+    {
+        "id": 8807,
+        "questId": 2326,
+        "monsterId": 1732
+    },
+    {
+        "id": 8808,
+        "questId": 2326,
+        "monsterId": 1733
+    },
+    {
+        "id": 8809,
+        "questId": 2327,
+        "monsterId": 481
+    },
+    {
+        "id": 8810,
+        "questId": 2327,
+        "monsterId": 485
+    },
+    {
+        "id": 8811,
+        "questId": 2327,
+        "monsterId": 487
+    },
+    {
+        "id": 8812,
+        "questId": 2327,
+        "monsterId": 466
+    },
+    {
+        "id": 8813,
+        "questId": 2327,
+        "monsterId": 212
+    },
+    {
+        "id": 8814,
+        "questId": 2327,
+        "monsterId": 206
+    },
+    {
+        "id": 8815,
+        "questId": 2327,
+        "monsterId": 205
+    },
+    {
+        "id": 8816,
+        "questId": 2327,
+        "monsterId": 723
+    },
+    {
+        "id": 8817,
+        "questId": 2327,
+        "monsterId": 1734
+    },
+    {
+        "id": 8818,
+        "questId": 2328,
+        "monsterId": 1735
+    },
+    {
+        "id": 8819,
+        "questId": 2329,
+        "monsterId": 1736
+    },
+    {
+        "id": 8820,
+        "questId": 2329,
+        "monsterId": 1737
+    },
+    {
+        "id": 8821,
+        "questId": 2330,
+        "monsterId": 1736
+    },
+    {
+        "id": 8822,
+        "questId": 2330,
+        "monsterId": 1737
+    },
+    {
+        "id": 8823,
+        "questId": 2331,
+        "monsterId": 1736
+    },
+    {
+        "id": 8824,
+        "questId": 2331,
+        "monsterId": 1737
+    },
+    {
+        "id": 8825,
+        "questId": 2332,
+        "monsterId": 16
+    },
+    {
+        "id": 8826,
+        "questId": 2332,
+        "monsterId": 1602
+    },
+    {
+        "id": 8827,
+        "questId": 2332,
+        "monsterId": 533
+    },
+    {
+        "id": 8828,
+        "questId": 2332,
+        "monsterId": 534
+    },
+    {
+        "id": 8829,
+        "questId": 2332,
+        "monsterId": 93
+    },
+    {
+        "id": 8830,
+        "questId": 2332,
+        "monsterId": 2
+    },
+    {
+        "id": 8831,
+        "questId": 2332,
+        "monsterId": 64
+    },
+    {
+        "id": 8832,
+        "questId": 2332,
+        "monsterId": 168
+    },
+    {
+        "id": 8833,
+        "questId": 2333,
+        "monsterId": 1739
+    },
+    {
+        "id": 8834,
+        "questId": 2333,
+        "monsterId": 1738
+    },
+    {
+        "id": 8835,
+        "questId": 2333,
+        "monsterId": 1740
+    },
+    {
+        "id": 8836,
+        "questId": 2333,
+        "monsterId": 1741
+    },
+    {
+        "id": 8837,
+        "questId": 2334,
+        "monsterId": 1
+    },
+    {
+        "id": 8838,
+        "questId": 2334,
+        "monsterId": 2
+    },
+    {
+        "id": 8839,
+        "questId": 2334,
+        "monsterId": 3
+    },
+    {
+        "id": 8840,
+        "questId": 2334,
+        "monsterId": 14
+    },
+    {
+        "id": 8841,
+        "questId": 2334,
+        "monsterId": 118
+    },
+    {
+        "id": 8842,
+        "questId": 2334,
+        "monsterId": 338
+    },
+    {
+        "id": 8843,
+        "questId": 2334,
+        "monsterId": 339
+    },
+    {
+        "id": 8844,
+        "questId": 2334,
+        "monsterId": 336
+    },
+    {
+        "id": 8845,
+        "questId": 2334,
+        "monsterId": 337
+    },
+    {
+        "id": 8846,
+        "questId": 2334,
+        "monsterId": 1051
+    },
+    {
+        "id": 8847,
+        "questId": 2334,
+        "monsterId": 1052
+    },
+    {
+        "id": 8848,
+        "questId": 2335,
+        "monsterId": 57
+    },
+    {
+        "id": 8849,
+        "questId": 2335,
+        "monsterId": 17
+    },
+    {
+        "id": 8850,
+        "questId": 2335,
+        "monsterId": 1742
+    },
+    {
+        "id": 8851,
+        "questId": 2335,
+        "monsterId": 1743
+    },
+    {
+        "id": 8852,
+        "questId": 2335,
+        "monsterId": 1686
+    },
+    {
+        "id": 8853,
+        "questId": 2336,
+        "monsterId": 57
+    },
+    {
+        "id": 8854,
+        "questId": 2336,
+        "monsterId": 17
+    },
+    {
+        "id": 8855,
+        "questId": 2336,
+        "monsterId": 1742
+    },
+    {
+        "id": 8856,
+        "questId": 2336,
+        "monsterId": 1743
+    },
+    {
+        "id": 8857,
+        "questId": 2336,
+        "monsterId": 1686
+    },
+    {
+        "id": 8858,
+        "questId": 2337,
+        "monsterId": 1744
+    },
+    {
+        "id": 8859,
+        "questId": 2337,
+        "monsterId": 16
+    },
+    {
+        "id": 8860,
+        "questId": 2337,
+        "monsterId": 168
+    },
+    {
+        "id": 8861,
+        "questId": 2337,
+        "monsterId": 12
     }
 ]

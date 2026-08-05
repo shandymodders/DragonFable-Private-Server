@@ -1811,8 +1811,32 @@
         "id": 453,
         "name": "Malifact's Fall"
     },
-	{
+    {
         "id": 454,
         "name": "The Kinnaran Accord"
+    },
+    {
+        "id": 455,
+        "name": "Time Cycle Rewards"
+    },
+    {
+        "id": 456,
+        "name": "Ruby's Rainbow Rewards"
+    },
+    {
+        "id": 457,
+        "name": "DracoLich Rewards"
+    },
+    {
+        "id": 458,
+        "name": "Dragonslayers' Fury"
+    },
+    {
+        "id": 459,
+        "name": "DragonLord's Legacy"
+    },
+    {
+        "id": 460,
+        "name": "The Human Sins"
     }
 ]
