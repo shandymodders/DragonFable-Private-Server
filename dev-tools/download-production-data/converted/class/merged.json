@@ -1398,5 +1398,95 @@
         "savable": 0,
         "armorId": 9800657,
         "weaponId": 9800656
+    },	
+    {
+        "id": 1001,
+        "name": "Warrior 1.0",
+        "element": "Metal",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "class-warriorold-r2.swf",
+        "savable": 2,
+        "armorId": 9800009,
+        "weaponId": 9800008
+    },
+    {
+        "id": 1002,
+        "name": "Dragon Keeper Warrior",
+        "element": "Metal",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "classwarriorDragon.swf",
+        "savable": 2,
+        "armorId": 9800009,
+        "weaponId": 9800008
+    },
+    {
+        "id": 1003,
+        "name": "Mage 1.0",
+        "element": "Nature",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Helmet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "class-mageold-r2.swf",
+        "savable": 2,
+        "armorId": 9800013,
+        "weaponId": 9800012
+    },
+    {
+        "id": 1004,
+        "name": "Dragon Keeper Mage",
+        "element": "Nature",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Helmet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "classmageDragon.swf",
+        "savable": 2,
+        "armorId": 9800013,
+        "weaponId": 9800012
+    },
+    {
+        "id": 1005,
+        "name": "Rogue 1.0",
+        "element": "Metal",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "class-rogueold-r3.swf",
+        "savable": 2,
+        "armorId": 9800017,
+        "weaponId": 9800016
+    },
+    {
+        "id": 1006,
+        "name": "Dragon Keeper Rogue",
+        "element": "Metal",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "classrogueDragon.swf",
+        "savable": 2,
+        "armorId": 9800017,
+        "weaponId": 9800016
+    },
+    {
+        "id": 1007,
+        "name": "DoomKnight old",
+        "element": "Darkness",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "class-doomknightr6.swf",
+        "savable": 2,
+        "armorId": 9800435,
+        "weaponId": 9800434
+    },
+    {
+        "id": 1008,
+        "name": "Evolved PumpkinLord revamp",
+        "element": "Darkness",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Cape,Wings,Helmet,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "class-PumpkinEvoRevamp-r2.swf",
+        "savable": 2,
+        "armorId": 9800145,
+        "weaponId": 9800144
+    },
+    {
+        "id": 1009,
+        "name": "Sepulchure",
+        "element": "Darkness",
+        "equippable": "Sword,Mace,Dagger,Axe,Ring,Necklace,Staff,Belt,Earring,Bracer,Pet,Cape,Wings,Armor,Wand,Scythe,Trinket,Artifact",
+        "swf": "class-sepulchure.swf",
+        "savable": 2,
+        "armorId": 9904457,
+        "weaponId": 9904456
     }
 ]
