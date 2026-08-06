@@ -55,7 +55,7 @@ $thingsToDownload = [
     ],
     "shop" => [
         "from" => 1,
-        "to" => 900,
+        "to" => 850,
         "needAuth" => false,
         "endpoint" => "/cf-shopload.asp",
         "param" => "intShopID",
@@ -76,7 +76,7 @@ $thingsToDownload = [
     ],
     "mergeShop" => [
         "from" => 1,
-        "to" => 500,
+        "to" => 460,
         "needAuth" => false,
         "endpoint" => "/cf-mergeshopload.asp",
         "param" => "intMergeShopID",

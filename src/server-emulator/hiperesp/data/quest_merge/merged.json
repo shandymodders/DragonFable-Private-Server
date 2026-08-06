@@ -6,5 +6,93 @@
         "type": 0,
         "itemId": 1594,
         "amount": 5
-    }
+    },
+    {
+        "id": 29,
+        "index": 6,
+        "value": 15,
+        "type": 2,
+        "itemId": 1010,
+        "amount": 1
+    },
+    {
+        "id": 74,
+        "index": 11,
+        "value": 15,
+        "type": 2,
+        "itemId": 1594,
+        "amount": 1
+	},
+    {
+        "id": 44,
+        "index": 7,
+        "value": 15,
+        "type": 2,
+        "itemId": 1131,
+        "amount": 1
+	},
+    {
+        "id": 59,
+        "index": 10,
+        "value": 15,
+        "type": 2,
+        "itemId": 1419,
+        "amount": 3
+	},
+    {
+        "id": 90,
+        "index": 12,
+        "value": 15,
+        "type": 2,
+        "itemId": 1594,
+        "amount": 1
+	},
+    {
+        "id": 105,
+        "index": 9,
+        "value": 15,
+        "type": 2,
+        "itemId": 1594,
+        "amount": 1
+	},
+    {
+        "id": 120,
+        "index": 15,
+        "value": 15,
+        "type": 2,
+        "itemId": 1773,
+        "amount": 1
+	},
+    {
+        "id": 152,
+        "index": 17,
+        "value": 15,
+        "type": 2,
+        "itemId": 2279,
+        "amount": 1
+	},
+    {
+        "id": 28,
+        "index": 12,
+        "value": 1,
+        "type": 0,
+        "itemId": 864,
+        "amount": 3
+	},
+    {
+        "id": 167,
+        "index": 18,
+        "value": 15,
+        "type": 2,
+        "itemId": 3727,
+        "amount": 3
+	},
+    {
+        "id": 150,
+        "index": 25,
+        "value": 6,
+        "type": 0,
+        "itemId": 864,
+        "amount": 10
+	}
 ]
