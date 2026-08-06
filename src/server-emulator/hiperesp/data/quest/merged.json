@@ -47255,7 +47255,7 @@
     {
         "id": 2289,
         "swf": "towns/Frostvale/F25/quest1-coldopen.swf?ver=10",
-        "swfX": "none",
+        "swfX": "towns\/Frostvale\/F25\/quest1-coldopen-x.swf?ver=3",
         "extra": "",
         "name": "A Cold Open",
         "description": "Alongside your dragon, you prepare for a peaceful night in Swordhaven... Wait, is it just me or is it getting colder?",
@@ -47402,7 +47402,7 @@
     {
         "id": 2296,
         "swf": "towns/aika/quest-13beachwar.swf?ver=9",
-        "swfX": "none",
+        "swfX": "towns\/aika\/quest-13beachwar-x.swf",
         "extra": "",
         "name": "Beach Vacation Invasion",
         "description": "Your beach vacation is suddenly under attack! You have to save Aika Village before it's too hot for anyone!",
