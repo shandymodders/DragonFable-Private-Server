@@ -96,7 +96,7 @@
     },
     {
         "id": 20,
-        "name": "Ice Dragon War Shop",
+        "name": "IDI Rewards",
         "count": -100
     },
     {
@@ -911,7 +911,7 @@
     },
     {
         "id": 185,
-        "name": "SuperBowl Shop",
+        "name": "Strange Ball Shop",
         "count": -100
     },
     {
@@ -1067,7 +1067,7 @@
     {
         "id": 216,
         "name": "LQS",
-        "count": 1322
+        "count": 1320
     },
     {
         "id": 217,
@@ -4021,7 +4021,7 @@
     },
     {
         "id": 821,
-        "name": "Black Friday 2024",
+        "name": "Black Friday Obsidian",
         "count": -100
     },
     {
@@ -4111,7 +4111,7 @@
     },
     {
         "id": 839,
-        "name": "CandyCon Gummy Gemstone",
+        "name": "Doomed Gummy",
         "count": -100
     },
     {

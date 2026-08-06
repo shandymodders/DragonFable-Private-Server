@@ -12,12 +12,6 @@ However, the community continues to maintain active forks — such as:
 
 **shandymodders**: https://github.com/shandymodders/DragonFable-Private-Server
 
-**House Update Tutorial**: https://youtu.be/mUrzQCAir2k?si=dAxfcivfPcBrk7r-
-
-**Tutorial Setup**: https://www.youtube.com/watch?v=bEGdYrznDxU
-
-Discord server comunity for make any mods dragon fable : https://discord.gg/jhEf4dn65m
-
 If you maintain an active fork and would like it to be added to the community list, feel free to open an issue or send me an email at gabrielramos149@gmail.com
 
 ### Disclaimer
