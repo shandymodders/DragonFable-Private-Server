@@ -1,0 +1,34 @@
+/* Scrollable right-side web chat */
+#chat-container .content-chat {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    min-height: 0 !important;
+    justify-content: flex-start !important;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scroll-behavior: smooth;
+    padding-right: 6px !important;
+}
+
+/* Keep messages from shrinking when the history is taller than the panel. */
+#chat-container .content-chat > .chat-item {
+    flex-shrink: 0;
+}
+
+/* Make the scrollbar easy to grab without changing the layout. */
+#chat-container .content-chat::-webkit-scrollbar {
+    width: 10px;
+}
+
+#chat-container .content-chat::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+#chat-container .content-chat::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 10px;
+}
+
+#chat-container .content-chat::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.34);
+}

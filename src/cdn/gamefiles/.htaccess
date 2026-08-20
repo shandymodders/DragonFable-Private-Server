@@ -1,4 +1,12 @@
 RewriteEngine On
 
+# AEU web trainer files must be directly fetchable by Ruffle.
+RewriteCond %{REQUEST_URI} !/(aeu|DF_Chat|DF_Ch6t|DF_Nameplates)\.swf$ [NC]
 RewriteCond %{REQUEST_FILENAME} !/(local|remote|cache|dynamic)\.php$ [NC]
 RewriteRule .* - [F,L]
+
+<IfModule mod_headers.c>
+  <FilesMatch "^(aeu|DF_Chat|DF_Ch6t|DF_Nameplates)\.swf$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+  </FilesMatch>
+</IfModule>
