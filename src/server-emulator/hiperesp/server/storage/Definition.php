@@ -69,7 +69,7 @@ final class Definition {
 
                     "serverName"            => "DragonFable Private Server",
 
-                    "gameSwf"               => "game15_9_59.swf",
+                    "gameSwf"               => "game15_9_59-Fix.swf",
                     "serverVersion"         => "DFPS 15.9.59", // appears in the game client version, only display
                     //                                this is the ^ last visible char (aprox. 19 chars)
                     "serverLocation"        => "server-emulator/server.php/", // You can also use something like "http://localhost:40000/server-emulator/server.php/";
