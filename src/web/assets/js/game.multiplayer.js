@@ -5,14 +5,18 @@ window.hiperesp.dfps.addEventListener("load", function() {
             this.user = null;
             this.map = "";
             this.eventSource = null;
-            this.lastSentAt = 0;
+            this.lastSentAt = -1000000;
             this.lastStateKey = "";
             this.activeRemoteIds = new Set();
             this.appearance = new Map();
-            this.appearanceRefreshMs = 3000;
+            this.appearanceRefreshMs = 5000;
             this.appearanceApplyRetryMs = 750;
             this.appearanceReadyCheckMs = 2000;
             this.streamSerial = 0;
+            this.suspended = false;
+            this.playersHidden = false;
+            this.lastPlayers = [];
+            this.lastPlayersMap = "";
 
             hiperesp.dfps.addEventListener("logged", user => {
                 this.user = {
@@ -34,9 +38,42 @@ window.hiperesp.dfps.addEventListener("load", function() {
             return document.getElementById("FFable");
         }
 
+        normalizeEquipment(equipment) {
+            const source = equipment && typeof equipment === "object" ? equipment : {};
+            const normalizeSlot = slot => {
+                const value = slot && typeof slot === "object" ? slot : {};
+                return {
+                    file: String(value.file || ""),
+                    itemType: String(value.itemType || ""),
+                    type: String(value.type || ""),
+                    visible: Number(value.visible || 0) === 1 || value.visible === true ? 1 : 0,
+                };
+            };
+
+            return {
+                weapon: normalizeSlot(source.weapon),
+                back: normalizeSlot(source.back),
+                head: normalizeSlot(source.head),
+            };
+        }
+
         publish(state) {
+            const privateMode = Number(state.privateMode || 0) === 1 || state.privateMode === true;
+            if(privateMode) {
+                this.suspendWorld();
+                return;
+            }
+
             if(!this.user?.token || !state.map) return;
 
+            if(this.suspended) {
+                this.suspended = false;
+                this.map = "";
+                this.lastSentAt = -1000000;
+                this.lastStateKey = "";
+            }
+
+            const rawAnimSerial = Number(state.animSerial || 0);
             const normalized = {
                 map: String(state.map),
                 charId: Number(state.charId || 0),
@@ -49,6 +86,9 @@ window.hiperesp.dfps.addEventListener("load", function() {
                 scaleY: Number(state.scaleY || 100),
                 dir: String(state.dir || ""),
                 frame: Number(state.frame || 1),
+                animation: String(state.animation || ""),
+                animSerial: Number.isFinite(rawAnimSerial) ? Math.max(0, Math.floor(rawAnimSerial)) : 0,
+                equipment: this.normalizeEquipment(state.equipment),
                 name: String(state.name || ""),
             };
 
@@ -59,14 +99,16 @@ window.hiperesp.dfps.addEventListener("load", function() {
                 this.map = normalized.map;
                 this.activeRemoteIds.clear();
                 this.appearance.clear();
+                this.lastPlayers = [];
+                this.lastPlayersMap = normalized.map;
                 this.clearInGame();
                 this.openStream();
             }
 
             const now = performance.now();
             const stateKey = JSON.stringify(normalized);
-            if(stateKey === this.lastStateKey && (now - this.lastSentAt) < 800) return;
-            if((now - this.lastSentAt) < 90) return;
+            if(stateKey === this.lastStateKey && (now - this.lastSentAt) < 600) return;
+            if((now - this.lastSentAt) < 55) return;
 
             this.lastSentAt = now;
             this.lastStateKey = stateKey;
@@ -100,7 +142,11 @@ window.hiperesp.dfps.addEventListener("load", function() {
                 if(this.eventSource !== source || this.streamSerial !== streamSerial || this.map !== streamMap) return;
                 try {
                     const players = JSON.parse(event.data);
-                    if(Array.isArray(players)) this.renderInGame(players, streamMap);
+                    if(Array.isArray(players)) {
+                        this.lastPlayers = players;
+                        this.lastPlayersMap = streamMap;
+                        if(!this.playersHidden) this.renderInGame(players, streamMap);
+                    }
                 } catch(error) {
                     console.error("Invalid multiplayer payload", error);
                 }
@@ -115,6 +161,12 @@ window.hiperesp.dfps.addEventListener("load", function() {
 
         renderInGame(players, streamMap = this.map) {
             if(streamMap !== this.map) return;
+            if(this.playersHidden) {
+                this.clearInGame();
+                this.activeRemoteIds.clear();
+                return;
+            }
+
             const flash = this.getFlash();
             if(!flash || typeof flash.DFPS_RemotePlayersBegin !== "function" ||
                typeof flash.DFPS_RemotePlayer !== "function" ||
@@ -143,6 +195,7 @@ window.hiperesp.dfps.addEventListener("load", function() {
                     const runtimeClassId = Number(player.classId ?? 0);
                     const runtimeClassFile = String(player.classFile ?? "");
                     const runtimeClassKey = `${runtimeClassId}|${runtimeClassFile}`;
+                    const equipment = this.normalizeEquipment(player.equipment);
 
                     flash.DFPS_RemotePlayer(
                         id,
@@ -157,7 +210,21 @@ window.hiperesp.dfps.addEventListener("load", function() {
                         Number(player.frame ?? 1),
                         runtimeClassId,
                         runtimeClassFile,
-                        player.moving ? 1 : 0
+                        player.moving ? 1 : 0,
+                        String(player.animation ?? ""),
+                        Number(player.animSerial ?? 0),
+                        equipment.weapon.file,
+                        equipment.weapon.itemType,
+                        equipment.weapon.type,
+                        equipment.weapon.visible,
+                        equipment.back.file,
+                        equipment.back.itemType,
+                        equipment.back.type,
+                        equipment.back.visible,
+                        equipment.head.file,
+                        equipment.head.itemType,
+                        equipment.head.type,
+                        equipment.head.visible
                     );
 
                     let appearanceState = this.appearance.get(id);
@@ -191,6 +258,8 @@ window.hiperesp.dfps.addEventListener("load", function() {
         }
 
         applyCachedAppearance(remoteId, charId, force = false) {
+            if(this.playersHidden) return;
+
             const cached = this.appearance.get(remoteId);
             if(!cached || cached.charId !== charId || !cached.version || !cached.xml) return;
 
@@ -305,6 +374,51 @@ window.hiperesp.dfps.addEventListener("load", function() {
             }
         }
 
+        setPlayersHidden(hidden) {
+            this.playersHidden = Boolean(hidden);
+
+            if(this.playersHidden) {
+                this.clearInGame();
+                this.activeRemoteIds.clear();
+            } else if(
+                !this.suspended &&
+                this.lastPlayersMap === this.map &&
+                Array.isArray(this.lastPlayers)
+            ) {
+                this.renderInGame(this.lastPlayers, this.lastPlayersMap);
+            }
+
+            return this.playersHidden;
+        }
+
+        suspendWorld() {
+            if(this.suspended) return;
+            this.suspended = true;
+            this.streamSerial++;
+
+            if(this.eventSource) {
+                this.eventSource.close();
+                this.eventSource = null;
+            }
+
+            this.clearInGame();
+            this.activeRemoteIds.clear();
+            this.appearance.clear();
+            this.map = "";
+            this.lastPlayers = [];
+            this.lastPlayersMap = "";
+            this.lastStateKey = "";
+            this.lastSentAt = -1000000;
+
+            if(!this.user?.token) return;
+            fetch(this.serverLocation + "/world/leave", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                keepalive: true,
+                body: JSON.stringify({ token: this.user.token }),
+            }).catch(() => {});
+        }
+
         leave() {
             if(!this.user?.token) return;
 
@@ -316,6 +430,8 @@ window.hiperesp.dfps.addEventListener("load", function() {
             this.clearInGame();
             this.activeRemoteIds.clear();
             this.appearance.clear();
+            this.lastPlayers = [];
+            this.lastPlayersMap = "";
 
             const body = JSON.stringify({ token: this.user.token });
             if(navigator.sendBeacon) {

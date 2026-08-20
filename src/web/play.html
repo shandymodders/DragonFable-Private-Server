@@ -16,9 +16,9 @@
         <script src="assets/js/script.js"></script>
         <script src="assets/js/game.js"></script>
         <script src="assets/js/game.chat.js"></script>
-        <script src="assets/js/game.multiplayer.js?v=9"></script>
+        <script src="assets/js/game.multiplayer.js?v=12"></script>
         <script src="assets/js/chat-scroll.js?v=10"></script>
-        <script src="assets/js/aeu-control.js?v=10"></script>
+        <script src="assets/js/aeu-control.js?v=12"></script>
 
         <!-- HiperDialog -->
         <link rel="stylesheet" id="dialog-lights" type="text/css" href="https://hiperesp.github.io/HiperDialog/src/css/color/default.css">
@@ -64,6 +64,11 @@
                 <button id="aeu-open-button" type="button" onclick="openAEUTrainer()" disabled
                 style="padding:8px 16px;background:#6d3f16;color:#fff4d6;border:1px solid #b8874b;border-radius:4px;font-weight:700;">
                 Open AEU Trainer
+                </button>
+                <button id="players-visibility-button" type="button" onclick="toggleAllPlayers()" disabled
+                aria-pressed="false"
+                style="padding:8px 16px;background:#6d3f16;color:#fff4d6;border:1px solid #b8874b;border-radius:4px;font-weight:700;">
+                Hide All Players
                 </button>
                 <span id="aeu-status" style="font-size:13px;color:#d8c6a4;">
                 Log in to DragonFable to enable the AEU button.

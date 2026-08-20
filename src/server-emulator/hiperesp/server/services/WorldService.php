@@ -9,8 +9,8 @@ use hiperesp\server\vo\CharacterVO;
 
 class WorldService extends Service {
 
-    private const PLAYER_TTL_SECONDS = 3.0;
-    private const UPDATE_INTERVAL_US = 100_000;
+    private const PLAYER_TTL_SECONDS = 5.0;
+    private const UPDATE_INTERVAL_US = 50_000;
     private const MAX_MAP_LENGTH = 512;
 
     #[Inject] private UserModel $userModel;
@@ -42,6 +42,9 @@ class WorldService extends Service {
         $scaleY = $this->finiteNumber($state['scaleY'] ?? 100.0) ?? 100.0;
         $direction = $this->normalizeText((string)($state['dir'] ?? ''), 16);
         $frame = $this->finiteNumber($state['frame'] ?? 1.0) ?? 1.0;
+        $animation = $this->normalizeText((string)($state['animation'] ?? ''), 96);
+        $animSerial = \max(0, \min(2_147_483_647, (int)($state['animSerial'] ?? 0)));
+        $equipment = $this->normalizeEquipment($state['equipment'] ?? null);
         $runtimeClassId = (int)($state['classId'] ?? 0);
         $runtimeClassFile = $this->normalizeClassFile((string)($state['classFile'] ?? ''));
         $moving = (bool)($state['moving'] ?? false);
@@ -52,7 +55,7 @@ class WorldService extends Service {
             throw new DFException(DFException::CHARACTER_NOT_FOUND);
         }
 
-        $this->mutateState(function(array &$players) use($user, $charId, $map, $x, $y, $scaleX, $scaleY, $direction, $frame, $runtimeClassId, $runtimeClassFile, $moving, $characterName): void {
+        $this->mutateState(function(array &$players) use($user, $charId, $map, $x, $y, $scaleX, $scaleY, $direction, $frame, $animation, $animSerial, $equipment, $runtimeClassId, $runtimeClassFile, $moving, $characterName): void {
             $players[(string)$user->id] = [
                 'id' => $user->id,
                 'charId' => $charId,
@@ -68,6 +71,9 @@ class WorldService extends Service {
                 'scaleY' => $scaleY,
                 'dir' => $direction,
                 'frame' => $frame,
+                'animation' => $animation,
+                'animSerial' => $animSerial,
+                'equipment' => $equipment,
                 'updatedAt' => \microtime(true),
             ];
         });
@@ -170,6 +176,43 @@ class WorldService extends Service {
         if($value === '' || \strlen($value) > 160) return '';
         if(!\preg_match('/^[A-Za-z0-9 _.-]+\.swf$/i', $value)) return '';
         return $value;
+    }
+
+    private function normalizeEquipment(mixed $value): array {
+        $equipment = \is_array($value) ? $value : [];
+        return [
+            'weapon' => $this->normalizeEquipmentSlot($equipment['weapon'] ?? null),
+            'back' => $this->normalizeEquipmentSlot($equipment['back'] ?? null),
+            'head' => $this->normalizeEquipmentSlot($equipment['head'] ?? null),
+        ];
+    }
+
+    private function normalizeEquipmentSlot(mixed $value): array {
+        $slot = \is_array($value) ? $value : [];
+        $file = \str_replace('\\', '/', \trim((string)($slot['file'] ?? '')));
+
+        // Runtime equipment is allowed to reference only a relative SWF asset.
+        // This prevents a forged multiplayer packet from loading another origin
+        // or traversing outside the configured gamefiles directory on viewers.
+        if(
+            $file === '' ||
+            \strlen($file) > 255 ||
+            \str_starts_with($file, '/') ||
+            \str_contains($file, '..') ||
+            !\preg_match('/^[^\x00-\x1F\x7F?#:]+\.swf$/i', $file)
+        ) {
+            $file = '';
+        }
+
+        return [
+            'file' => $file,
+            'itemType' => $this->normalizeText((string)($slot['itemType'] ?? ''), 64),
+            'type' => $this->normalizeText((string)($slot['type'] ?? ''), 64),
+            'visible' => $file !== '' && (
+                ($slot['visible'] ?? false) === true ||
+                (int)($slot['visible'] ?? 0) === 1
+            ),
+        ];
     }
 
     private function finiteNumber(mixed $value): ?float {

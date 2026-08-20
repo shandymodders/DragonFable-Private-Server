@@ -11,6 +11,13 @@ if(_root.dfpsMultiplayerStarted != true)
    _root.dfpsRemoteLoadTimeout = 8000;
    _root.dfpsLastLocalMapX = undefined;
    _root.dfpsLastLocalMapY = undefined;
+   _root.dfpsLocalMovingUntil = 0;
+   _root.dfpsLastLocalAnimFrame = undefined;
+   _root.dfpsLastLocalAnimLabel = "";
+   _root.dfpsLocalAnimSerial = 1;
+   _root.dfpsPrivateMode = false;
+   _root.dfpsInterpolationDelay = 100;
+   _root.dfpsMaxExtrapolation = 90;
 
    // -----------------------------------------------------------------------
    // AREA ID
@@ -51,6 +58,22 @@ if(_root.dfpsMultiplayerStarted != true)
       }
 
       return mapUrl + "|room=" + String(mapFrame) + "|label=" + mapLabel + "|placement=" + placementFrame;
+   };
+
+   // Multiplayer is intentionally town/public-map only. Quest instances and
+   // every active battle are private gameplay contexts: remote avatars must
+   // never be created there and the browser bridge is asked to leave the room.
+   _root.dfpsIsPrivateWorld = function()
+   {
+      if(_root.battle != undefined && _root.battle.isActive == true)
+      {
+         return true;
+      }
+      if(_root.quest != undefined && _root.town == undefined)
+      {
+         return true;
+      }
+      return false;
    };
 
    // Resolve the class SWF that is ACTUALLY loaded on the local avatar.
@@ -98,6 +121,117 @@ if(_root.dfpsMultiplayerStarted != true)
          }
       }
       return fallback;
+   };
+
+   _root.dfpsGetActiveAnimationLabel = function(avatar)
+   {
+      if(avatar == undefined)
+      {
+         return "";
+      }
+
+      var label = "";
+      if(avatar._currentlabel != undefined)
+      {
+         label = String(avatar._currentlabel);
+      }
+      else if(avatar.currentLabel != undefined)
+      {
+         label = String(avatar.currentLabel);
+      }
+
+      if(label == "undefined" || label == "null")
+      {
+         return "";
+      }
+      return label;
+   };
+
+   _root.dfpsFindRuntimeVisualItem = function(playerObj,primarySpot,alternateSpot)
+   {
+      if(playerObj == undefined)
+      {
+         return undefined;
+      }
+
+      var lists = new Array();
+      lists.push(playerObj.arrTempInventory);
+      lists.push(playerObj.items);
+
+      var usedItem = undefined;
+      for(var listIndex = 0; listIndex < lists.length; listIndex++)
+      {
+         var items = lists[listIndex];
+         if(items == undefined)
+         {
+            continue;
+         }
+
+         for(var itemIndex = 0; itemIndex < items.length; itemIndex++)
+         {
+            var item = items[itemIndex];
+            if(item == undefined)
+            {
+               continue;
+            }
+
+            var spot = String(item.strEquipSpot).toLowerCase();
+            if(spot != String(primarySpot).toLowerCase() && spot != String(alternateSpot).toLowerCase())
+            {
+               continue;
+            }
+
+            var fileName = String(item.strFileName);
+            if(fileName == "" || fileName == "undefined" || fileName == "null" || fileName.toLowerCase() == "none")
+            {
+               continue;
+            }
+
+            // "showed" is the cosmetic item actually rendered by DragonFable.
+            // It can intentionally differ from the stat item marked as "used".
+            if(item.showed == true)
+            {
+               return item;
+            }
+            if(usedItem == undefined && item.used == true)
+            {
+               usedItem = item;
+            }
+         }
+      }
+
+      return usedItem;
+   };
+
+   _root.dfpsDescribeRuntimeItem = function(item,visible)
+   {
+      if(item == undefined)
+      {
+         return {file:"",itemType:"",type:"",visible:0};
+      }
+      return {
+         file:String(item.strFileName),
+         itemType:String(item.strItemType),
+         type:String(item.strType),
+         visible:visible == true ? 1 : 0
+      };
+   };
+
+   _root.dfpsGetRuntimeEquipment = function(playerObj,avatar)
+   {
+      var weapon = _root.dfpsFindRuntimeVisualItem(playerObj,"weapon","");
+      var back = _root.dfpsFindRuntimeVisualItem(playerObj,"back","cape");
+      var head = _root.dfpsFindRuntimeVisualItem(playerObj,"head","helm");
+
+      var weaponVisible = weapon != undefined;
+      var backVisible = back != undefined;
+      var headVisible = head != undefined;
+
+      return {
+         weapon:_root.dfpsDescribeRuntimeItem(weapon,weaponVisible),
+         back:_root.dfpsDescribeRuntimeItem(back,backVisible),
+         head:_root.dfpsDescribeRuntimeItem(head,headVisible)
+      };
    };
 
    _root.dfpsIsNumericAttribute = function(attrName)
@@ -278,6 +412,13 @@ if(_root.dfpsMultiplayerStarted != true)
          return;
       }
 
+      // A previous cape/helm/weapon request may finish after the sender has
+      // already changed equipment. Never let that stale asset become visible.
+      if((info.kind == "weapon" || info.kind == "back" || info.kind == "helmet") && String(info.equipmentKey) != String(entry.equipmentKey))
+      {
+         return;
+      }
+
       if(success == true)
       {
          if(info.kind == "character")
@@ -294,13 +435,8 @@ if(_root.dfpsMultiplayerStarted != true)
 
             if(entry.avatar != undefined && entry.avatar.ptrMC != undefined)
             {
-               if(entry.avatar.bitRotateAfterLoad != true && entry.avatar.ptrMC.turn != undefined)
-               {
-                  entry.avatar.ptrMC.turn("left");
-               }
-
-               // This is the REMOTE-SAFE instance override installed below.
-               entry.avatar.equipSavedWeaponConfig();
+               _root.dfpsApplyRemoteFacing(entry);
+               _root.dfpsApplyRuntimeEquipment(entry,true);
                _root.dfpsApplyRemoteAnimation(entry,true);
             }
          }
@@ -351,6 +487,7 @@ if(_root.dfpsMultiplayerStarted != true)
       info.startedAt = getTimer();
       info.finished = false;
       info.loaderGeneration = Number(entry.loaderGeneration);
+      info.equipmentKey = String(entry.equipmentKey);
 
       var listener = new Object();
       listener.info = info;
@@ -507,9 +644,48 @@ if(_root.dfpsMultiplayerStarted != true)
    // AVATAR / POSITION LIFECYCLE
    // -----------------------------------------------------------------------
 
-   // Position is still network/smoothing driven. Only the class timeline is
-   // switched between native Walk and Idle so remote avatars animate without
-   // running walkTo(), collision checks, map triggers or local-player scripts.
+   _root.dfpsApplyRemoteFacing = function(entry)
+   {
+      if(entry == undefined || entry.clip == undefined)
+      {
+         return;
+      }
+
+      var magnitude = Math.abs(Number(entry.scaleX));
+      if(isNaN(magnitude) || magnitude == 0)
+      {
+         magnitude = Math.abs(Number(entry.clip._xscale));
+      }
+      if(isNaN(magnitude) || magnitude == 0)
+      {
+         magnitude = 100;
+      }
+
+      var direction = String(entry.dir).toUpperCase();
+      var faceLeft = Number(entry.scaleX) < 0;
+      if(direction == "W" || direction == "NW" || direction == "SW")
+      {
+         faceLeft = true;
+      }
+      else if(direction == "E" || direction == "NE" || direction == "SE")
+      {
+         faceLeft = false;
+      }
+
+      entry.clip._xscale = faceLeft ? - magnitude : magnitude;
+      entry.clip.isRotated = faceLeft;
+      entry.clip.moveDir = direction;
+      if(!isNaN(Number(entry.scaleY)) && Number(entry.scaleY) != 0)
+      {
+         entry.clip._yscale = Number(entry.scaleY);
+      }
+   };
+
+   // Position stays network/interpolation driven, so no remote walkTo() call can
+   // execute collision, room triggers, NPC scripts or local-player callbacks.
+   // Each remote class plays its own native timeline. A stopped Walk timeline is
+   // restarted while movement is still active, and non-walk states follow the
+   // sender's real class frame (Idle/Fight/Attack/Cast/etc.).
    _root.dfpsApplyRemoteAnimation = function(entry,force)
    {
       if(entry == undefined || entry.clip == undefined || entry.appearanceReady != true)
@@ -517,25 +693,81 @@ if(_root.dfpsMultiplayerStarted != true)
          return;
       }
 
-      var shouldWalk = entry.moving == true;
-      if(Math.abs(Number(entry.targetX) - Number(entry.currentX)) > 0.8 || Math.abs(Number(entry.targetY) - Number(entry.currentY)) > 0.8)
-      {
-         shouldWalk = true;
-      }
+      var now = getTimer();
+      var remainingX = Number(entry.targetX) - Number(entry.currentX);
+      var remainingY = Number(entry.targetY) - Number(entry.currentY);
+      var remainingSq = remainingX * remainingX + remainingY * remainingY;
+      var shouldWalk = entry.moving == true || remainingSq > 0.04 || now < Number(entry.movingUntil);
 
-      if(force != true && entry.renderMoving === shouldWalk)
+      if(shouldWalk)
       {
+         // DragonFable class timelines use onMove at the final Walk frame to
+         // jump straight back to the class-specific Walk label. Setting this
+         // flag gives remote avatars the same seamless native loop as the local
+         // player. No walkTo/onEnterWalk is installed, so collision, triggers
+         // and local-player movement remain completely untouched.
+         entry.clip.onMove = true;
+
+         if(force == true || entry.renderAnimationMode != "walk")
+         {
+            entry.renderAnimationMode = "walk";
+            entry.renderAnimationKey = "Walk";
+            entry.clip.gotoAndPlay("Walk");
+            entry.lastObservedAnimFrame = Number(entry.clip._currentframe);
+            entry.lastAnimationAdvanceAt = now;
+            return;
+         }
+
+         var walkFrame = Number(entry.clip._currentframe);
+         if(walkFrame != Number(entry.lastObservedAnimFrame))
+         {
+            entry.lastObservedAnimFrame = walkFrame;
+            entry.lastAnimationAdvanceAt = now;
+         }
+         else if(now - Number(entry.lastAnimationAdvanceAt) > 250)
+         {
+            // Fallback only for unusual classes that ignore onMove. Normal
+            // classes loop natively and never enter this recovery path.
+            entry.clip.gotoAndPlay("Walk");
+            entry.lastObservedAnimFrame = Number(entry.clip._currentframe);
+            entry.lastAnimationAdvanceAt = now;
+         }
          return;
       }
 
-      entry.renderMoving = shouldWalk;
-      if(shouldWalk)
+      entry.clip.onMove = false;
+      var animationKey = String(entry.animSerial) + "|" + String(entry.animation);
+      if(force == true || entry.renderAnimationMode != "state" || entry.renderAnimationKey != animationKey)
       {
-         entry.clip.gotoAndPlay("Walk");
+         entry.renderAnimationMode = "state";
+         entry.renderAnimationKey = animationKey;
+         entry.lastFrameSyncAt = now;
+
+         var desiredFrame = Number(entry.frame);
+         if(!isNaN(desiredFrame) && desiredFrame > 0)
+         {
+            // The sender and receiver use the same runtime class SWF, so its
+            // absolute frame is the most accurate class-specific state signal.
+            entry.clip.gotoAndPlay(desiredFrame);
+         }
+         else if(String(entry.animation) != "" && String(entry.animation) != "undefined" && String(entry.animation) != "null")
+         {
+            entry.clip.gotoAndPlay(String(entry.animation));
+         }
+         else
+         {
+            entry.clip.gotoAndPlay("Idle");
+         }
       }
-      else
+      else if(now - Number(entry.lastFrameSyncAt) > 350)
       {
-         entry.clip.gotoAndPlay("Idle");
+         var incomingFrame = Number(entry.frame);
+         var renderedFrame = Number(entry.clip._currentframe);
+         if(!isNaN(incomingFrame) && incomingFrame > 0 && Math.abs(incomingFrame - renderedFrame) > 18)
+         {
+            entry.clip.gotoAndPlay(incomingFrame);
+            entry.lastFrameSyncAt = now;
+         }
       }
    };
 
@@ -594,7 +826,9 @@ if(_root.dfpsMultiplayerStarted != true)
       entry.unitIndex = -1;
       entry.appearanceReady = false;
       entry.appearanceLoading = false;
-      entry.renderMoving = undefined;
+      entry.renderAnimationMode = undefined;
+      entry.renderAnimationKey = undefined;
+      entry.appliedEquipmentKey = "";
    };
 
    _root.dfpsClearRemotePlayers = function()
@@ -645,6 +879,139 @@ if(_root.dfpsMultiplayerStarted != true)
       return label;
    };
 
+   _root.dfpsMakeRuntimeEquipmentItem = function(spot,fileName,itemType,itemTypeDetail)
+   {
+      fileName = String(fileName);
+      if(fileName == "" || fileName == "undefined" || fileName == "null" || fileName.toLowerCase() == "none")
+      {
+         return undefined;
+      }
+
+      var item = new Object();
+      item.strEquipSpot = String(spot);
+      item.strFileName = fileName;
+      item.strItemType = String(itemType);
+      item.strType = String(itemTypeDetail);
+      item.dfpsEquipped = true;
+      item.bitEquipped = 0;
+      item.used = false;
+      item.showed = false;
+      item.slotted = false;
+      return item;
+   };
+
+   _root.dfpsBuildRuntimeEquipmentItems = function(entry)
+   {
+      var items = new Array();
+      if(entry == undefined || entry.equipmentKnown != true)
+      {
+         return items;
+      }
+
+      var item;
+      if(entry.weaponVisible == true)
+      {
+         item = _root.dfpsMakeRuntimeEquipmentItem("Weapon",entry.weaponFile,entry.weaponItemType,entry.weaponType);
+         if(item != undefined)
+         {
+            items.push(item);
+         }
+      }
+      if(entry.backVisible == true)
+      {
+         item = _root.dfpsMakeRuntimeEquipmentItem("Back",entry.backFile,entry.backItemType,entry.backType);
+         if(item != undefined)
+         {
+            items.push(item);
+         }
+      }
+      if(entry.headVisible == true)
+      {
+         item = _root.dfpsMakeRuntimeEquipmentItem("Head",entry.headFile,entry.headItemType,entry.headType);
+         if(item != undefined)
+         {
+            items.push(item);
+         }
+      }
+      return items;
+   };
+
+   _root.dfpsApplyRuntimeEquipment = function(entry,force)
+   {
+      if(entry == undefined || entry.avatar == undefined || entry.avatar.ptrObj == undefined || entry.avatar.ptrMC == undefined || entry.appearanceReady != true)
+      {
+         return;
+      }
+      if(entry.equipmentKnown != true)
+      {
+         if(force == true)
+         {
+            entry.avatar.equipSavedWeaponConfig();
+         }
+         return;
+      }
+      if(force != true && String(entry.appliedEquipmentKey) == String(entry.equipmentKey))
+      {
+         return;
+      }
+
+      var ptrMC = entry.avatar.ptrMC;
+
+      // Cancel older remote-only equipment requests before reusing their target
+      // clips. The class loader is never cancelled here.
+      if(entry.pendingLoads != undefined)
+      {
+         for(var pendingIndex = entry.pendingLoads.length - 1; pendingIndex >= 0; pendingIndex--)
+         {
+            var pendingInfo = entry.pendingLoads[pendingIndex];
+            if(pendingInfo != undefined && (pendingInfo.kind == "weapon" || pendingInfo.kind == "back" || pendingInfo.kind == "helmet"))
+            {
+               pendingInfo.finished = true;
+               if(pendingInfo.loader != undefined && pendingInfo.target != undefined)
+               {
+                  pendingInfo.loader.unloadClip(pendingInfo.target);
+               }
+               entry.pendingLoads.splice(pendingIndex,1);
+            }
+         }
+      }
+
+      // Clear only this remote MovieClip. No local inventory, HUD, stats or
+      // game.player state is touched.
+      if(ptrMC.unEquipItem != undefined)
+      {
+         ptrMC.unEquipItem("Weapon");
+      }
+      if(ptrMC.weapon != undefined)
+      {
+         ptrMC.weapon._visible = false;
+      }
+      if(ptrMC.weapon2 != undefined)
+      {
+         ptrMC.weapon2._visible = false;
+      }
+      if(ptrMC.chest != undefined && ptrMC.chest.back != undefined)
+      {
+         ptrMC.chest.back._visible = false;
+      }
+      if(ptrMC.head != undefined)
+      {
+         if(ptrMC.head.helm != undefined)
+         {
+            ptrMC.head.helm._visible = false;
+         }
+         if(ptrMC.head.hair != undefined)
+         {
+            ptrMC.head.hair._visible = true;
+         }
+      }
+      entry.avatar.bitHelmEquipped = false;
+
+      entry.avatar.ptrObj.items = _root.dfpsBuildRuntimeEquipmentItems(entry);
+      entry.avatar.equipSavedWeaponConfig();
+      entry.appliedEquipmentKey = String(entry.equipmentKey);
+   };
+
    _root.dfpsInstallSafeRemoteEquipment = function(remoteAvatar,entry)
    {
       remoteAvatar.dfpsEntry = entry;
@@ -681,6 +1048,10 @@ if(_root.dfpsMultiplayerStarted != true)
                if(this.ptrMC.equipItem != undefined)
                {
                   this.ptrMC.equipItem(item.strEquipSpot,item.strItemType,fileName);
+                  if(this.ptrMC.weapon != undefined)
+                  {
+                     this.ptrMC.weapon._visible = true;
+                  }
                }
             }
             else if(spot == "back" || spot == "cape")
@@ -763,6 +1134,10 @@ if(_root.dfpsMultiplayerStarted != true)
       {
          appearanceObj.strClassFileName = String(entry.classFile);
       }
+      if(entry.equipmentKnown == true)
+      {
+         appearanceObj.items = _root.dfpsBuildRuntimeEquipmentItems(entry);
+      }
 
       var oldTargetX = entry.targetX;
       var oldTargetY = entry.targetY;
@@ -788,7 +1163,9 @@ if(_root.dfpsMultiplayerStarted != true)
       entry.classId = oldClassId;
       entry.classFile = oldClassFile;
       entry.moving = oldMoving;
-      entry.renderMoving = undefined;
+      entry.renderAnimationMode = undefined;
+      entry.renderAnimationKey = undefined;
+      entry.appliedEquipmentKey = "";
       entry.appearanceVersion = String(appearanceVersion);
       entry.appearanceObject = appearanceObj;
       entry.appearanceXml = String(appearanceXml);
@@ -876,27 +1253,85 @@ if(_root.dfpsMultiplayerStarted != true)
          return;
       }
 
+      if(_root.dfpsIsPrivateWorld())
+      {
+         if(_root.dfpsPrivateMode != true)
+         {
+            _root.dfpsPrivateMode = true;
+            _root.dfpsClearRemotePlayers();
+            _root.dfpsCurrentMapId = "";
+            _root.dfpsLastLocalMapX = undefined;
+            _root.dfpsLastLocalMapY = undefined;
+            _root.dfpsLocalMovingUntil = 0;
+         }
+
+         flash.external.ExternalInterface.call("hiperesp.dfps.externalInterface.worldState",{
+            privateMode:1
+         });
+         return;
+      }
+
+      if(_root.dfpsPrivateMode == true)
+      {
+         _root.dfpsPrivateMode = false;
+         _root.dfpsCurrentMapId = "";
+         _root.dfpsLastLocalMapX = undefined;
+         _root.dfpsLastLocalMapY = undefined;
+         _root.dfpsLocalMovingUntil = 0;
+      }
+
       if(_root.dfpsCurrentMapId != mapId)
       {
          _root.dfpsClearRemotePlayers();
          _root.dfpsCurrentMapId = mapId;
          _root.dfpsLastLocalMapX = undefined;
          _root.dfpsLastLocalMapY = undefined;
+         _root.dfpsLocalMovingUntil = 0;
+         _root.dfpsLastLocalAnimFrame = undefined;
+         _root.dfpsLastLocalAnimLabel = "";
+         _root.dfpsLocalAnimSerial = _root.dfpsLocalAnimSerial + 1;
       }
 
       var mapPoint = _root.dfpsGetMapPosition(avatar);
-      var movingNow = avatar.onMove == true;
+      var now = getTimer();
+      var movingSample = avatar.onMove == true;
       if(_root.dfpsLastLocalMapX != undefined && _root.dfpsLastLocalMapY != undefined)
       {
-         if(Math.abs(Number(mapPoint.x) - Number(_root.dfpsLastLocalMapX)) > 0.6 || Math.abs(Number(mapPoint.y) - Number(_root.dfpsLastLocalMapY)) > 0.6)
+         var localDeltaX = Number(mapPoint.x) - Number(_root.dfpsLastLocalMapX);
+         var localDeltaY = Number(mapPoint.y) - Number(_root.dfpsLastLocalMapY);
+         if(localDeltaX * localDeltaX + localDeltaY * localDeltaY > 0.04)
          {
-            movingNow = true;
+            movingSample = true;
          }
       }
+      if(movingSample == true)
+      {
+         _root.dfpsLocalMovingUntil = now + 180;
+      }
+      var movingNow = movingSample == true || now < Number(_root.dfpsLocalMovingUntil);
       _root.dfpsLastLocalMapX = Number(mapPoint.x);
       _root.dfpsLastLocalMapY = Number(mapPoint.y);
 
       var activeClassFile = _root.dfpsGetActiveClassFile(avatar,playerObj);
+      var animationLabel = _root.dfpsGetActiveAnimationLabel(avatar);
+      var animationFrame = Number(avatar._currentframe);
+
+      if(_root.dfpsLastLocalAnimFrame == undefined)
+      {
+         _root.dfpsLocalAnimSerial = _root.dfpsLocalAnimSerial + 1;
+      }
+      else
+      {
+         var frameDelta = animationFrame - Number(_root.dfpsLastLocalAnimFrame);
+         if(animationLabel != _root.dfpsLastLocalAnimLabel || frameDelta < -2 || Math.abs(frameDelta) > 36)
+         {
+            _root.dfpsLocalAnimSerial = _root.dfpsLocalAnimSerial + 1;
+         }
+      }
+      _root.dfpsLastLocalAnimFrame = animationFrame;
+      _root.dfpsLastLocalAnimLabel = animationLabel;
+
+      var runtimeEquipment = _root.dfpsGetRuntimeEquipment(playerObj,avatar);
 
       flash.external.ExternalInterface.call("hiperesp.dfps.externalInterface.worldState",{
          map:mapId,
@@ -909,22 +1344,41 @@ if(_root.dfpsMultiplayerStarted != true)
          scaleX:avatar._xscale,
          scaleY:avatar._yscale,
          dir:avatar.moveDir,
-         frame:avatar._currentframe,
+         frame:animationFrame,
+         animation:animationLabel,
+         animSerial:_root.dfpsLocalAnimSerial,
+         equipment:runtimeEquipment,
+         privateMode:0,
          name:playerObj.strCharacterName
       });
    };
 
    _root.dfpsRemotePlayersBegin = function()
    {
+      if(_root.dfpsIsPrivateWorld())
+      {
+         _root.dfpsClearRemotePlayers();
+         return;
+      }
       _root.dfpsRemoteGeneration = _root.dfpsRemoteGeneration + 1;
    };
 
-   _root.dfpsRemotePlayer = function(remoteId,remoteName,remoteUsername,remoteCharId,remoteX,remoteY,remoteScaleX,remoteScaleY,remoteDir,remoteFrame,remoteClassId,remoteClassFile,remoteMoving)
+   _root.dfpsRemotePlayer = function(remoteId,remoteName,remoteUsername,remoteCharId,remoteX,remoteY,remoteScaleX,remoteScaleY,remoteDir,remoteFrame,remoteClassId,remoteClassFile,remoteMoving,remoteAnimation,remoteAnimSerial,remoteWeaponFile,remoteWeaponItemType,remoteWeaponType,remoteWeaponVisible,remoteBackFile,remoteBackItemType,remoteBackType,remoteBackVisible,remoteHeadFile,remoteHeadItemType,remoteHeadType,remoteHeadVisible)
    {
+      if(_root.dfpsIsPrivateWorld())
+      {
+         return;
+      }
+
       var key = "remote_" + String(remoteId);
       var entry = _root.dfpsRemotePlayers[key];
+      var now = getTimer();
+      var newX = Number(remoteX);
+      var newY = Number(remoteY);
+      var incomingMoving = Number(remoteMoving) == 1 || String(remoteMoving) == "true";
+      var isNew = entry == undefined;
 
-      if(entry == undefined)
+      if(isNew)
       {
          var displayName = String(remoteName);
          if(displayName == "" || displayName == "undefined" || displayName == "null")
@@ -937,17 +1391,29 @@ if(_root.dfpsMultiplayerStarted != true)
          entry.charId = Number(remoteCharId);
          entry.classId = Number(remoteClassId);
          entry.classFile = String(remoteClassFile);
-         entry.moving = Number(remoteMoving) == 1 || String(remoteMoving) == "true";
-         entry.renderMoving = undefined;
          entry.displayName = displayName;
-         entry.currentX = Number(remoteX);
-         entry.currentY = Number(remoteY);
-         entry.targetX = Number(remoteX);
-         entry.targetY = Number(remoteY);
+         entry.currentX = newX;
+         entry.currentY = newY;
+         entry.targetX = newX;
+         entry.targetY = newY;
+         entry.previousX = newX;
+         entry.previousY = newY;
+         entry.previousAt = now;
+         entry.latestX = newX;
+         entry.latestY = newY;
+         entry.latestAt = now;
+         entry.velocityX = 0;
+         entry.velocityY = 0;
+         entry.lastPacketAt = now;
+         entry.movingUntil = 0;
          entry.scaleX = Number(remoteScaleX);
          entry.scaleY = Number(remoteScaleY);
          entry.dir = String(remoteDir);
          entry.frame = Number(remoteFrame);
+         entry.animation = String(remoteAnimation);
+         entry.animSerial = Number(remoteAnimSerial);
+         entry.renderAnimationMode = undefined;
+         entry.renderAnimationKey = undefined;
          entry.generation = _root.dfpsRemoteGeneration;
          entry.appearanceVersion = "";
          entry.appearanceXml = "";
@@ -958,7 +1424,86 @@ if(_root.dfpsMultiplayerStarted != true)
          entry.unitIndex = -1;
          entry.loaderGeneration = 1;
          entry.pendingLoads = new Array();
+         entry.equipmentKnown = false;
+         entry.equipmentKey = "";
+         entry.appliedEquipmentKey = "";
          _root.dfpsRemotePlayers[key] = entry;
+      }
+      else
+      {
+         var lastSampleX = Number(entry.latestX);
+         var lastSampleY = Number(entry.latestY);
+         if(isNaN(lastSampleX))
+         {
+            lastSampleX = Number(entry.targetX);
+         }
+         if(isNaN(lastSampleY))
+         {
+            lastSampleY = Number(entry.targetY);
+         }
+
+         var sampleDeltaX = newX - lastSampleX;
+         var sampleDeltaY = newY - lastSampleY;
+         var movedInSample = sampleDeltaX * sampleDeltaX + sampleDeltaY * sampleDeltaY > 0.01;
+         var snapDeltaX = newX - Number(entry.currentX);
+         var snapDeltaY = newY - Number(entry.currentY);
+         if(snapDeltaX * snapDeltaX + snapDeltaY * snapDeltaY > 22500)
+         {
+            // Teleports and room spawn changes must not glide across the map.
+            entry.currentX = newX;
+            entry.currentY = newY;
+            entry.previousX = newX;
+            entry.previousY = newY;
+            entry.previousAt = now;
+            entry.latestX = newX;
+            entry.latestY = newY;
+            entry.latestAt = now;
+            entry.velocityX = 0;
+            entry.velocityY = 0;
+         }
+         else if(movedInSample)
+         {
+            var sampleInterval = now - Number(entry.latestAt);
+            if(isNaN(sampleInterval) || sampleInterval < 35)
+            {
+               sampleInterval = 35;
+            }
+            if(sampleInterval > 220)
+            {
+               sampleInterval = 220;
+            }
+
+            // Keep two authoritative snapshots. Rendering happens slightly
+            // behind them, so packet jitter never becomes a visible stop.
+            entry.previousX = lastSampleX;
+            entry.previousY = lastSampleY;
+            entry.previousAt = now - sampleInterval;
+            entry.latestX = newX;
+            entry.latestY = newY;
+            entry.latestAt = now;
+
+            var rawVelocityX = sampleDeltaX / sampleInterval;
+            var rawVelocityY = sampleDeltaY / sampleInterval;
+            entry.velocityX = Number(entry.velocityX) * 0.25 + rawVelocityX * 0.75;
+            entry.velocityY = Number(entry.velocityY) * 0.25 + rawVelocityY * 0.75;
+         }
+         else if(incomingMoving != true)
+         {
+            // Refresh an already-settled snapshot without collapsing a final
+            // buffered movement segment before it reaches the real endpoint.
+            var settleX = Number(entry.latestX) - Number(entry.currentX);
+            var settleY = Number(entry.latestY) - Number(entry.currentY);
+            if(settleX * settleX + settleY * settleY < 0.09)
+            {
+               entry.previousX = Number(entry.latestX);
+               entry.previousY = Number(entry.latestY);
+               entry.previousAt = now - 1;
+               entry.latestAt = now;
+               entry.velocityX = 0;
+               entry.velocityY = 0;
+            }
+         }
+         entry.lastPacketAt = now;
       }
 
       entry.generation = _root.dfpsRemoteGeneration;
@@ -978,7 +1523,18 @@ if(_root.dfpsMultiplayerStarted != true)
 
       entry.classId = incomingClassId;
       entry.classFile = incomingClassFile;
-      entry.moving = Number(remoteMoving) == 1 || String(remoteMoving) == "true";
+
+      var oldTargetX = Number(entry.targetX);
+      var oldTargetY = Number(entry.targetY);
+      var targetDeltaX = newX - oldTargetX;
+      var targetDeltaY = newY - oldTargetY;
+      var targetMoved = targetDeltaX * targetDeltaX + targetDeltaY * targetDeltaY > 0.01;
+      entry.moving = incomingMoving;
+      if(entry.moving == true || targetMoved)
+      {
+         entry.movingUntil = now + 240;
+      }
+
       if(runtimeClassChanged)
       {
          // Cached XML can be reused, but force DFPS_RemoteAppearance to rebuild
@@ -986,12 +1542,38 @@ if(_root.dfpsMultiplayerStarted != true)
          entry.appearanceVersion = "";
       }
 
-      entry.targetX = Number(remoteX);
-      entry.targetY = Number(remoteY);
+      entry.targetX = newX;
+      entry.targetY = newY;
       entry.scaleX = Number(remoteScaleX);
       entry.scaleY = Number(remoteScaleY);
       entry.dir = String(remoteDir);
       entry.frame = Number(remoteFrame);
+      entry.animation = String(remoteAnimation);
+      entry.animSerial = Number(remoteAnimSerial);
+
+      var equipmentKey = String(remoteWeaponFile) + "|" + String(remoteWeaponItemType) + "|" + String(remoteWeaponType) + "|" + String(remoteWeaponVisible) + "|" +
+                         String(remoteBackFile) + "|" + String(remoteBackItemType) + "|" + String(remoteBackType) + "|" + String(remoteBackVisible) + "|" +
+                         String(remoteHeadFile) + "|" + String(remoteHeadItemType) + "|" + String(remoteHeadType) + "|" + String(remoteHeadVisible);
+      var equipmentChanged = entry.equipmentKnown == true && String(entry.equipmentKey) != equipmentKey;
+      entry.weaponFile = String(remoteWeaponFile);
+      entry.weaponItemType = String(remoteWeaponItemType);
+      entry.weaponType = String(remoteWeaponType);
+      entry.weaponVisible = Number(remoteWeaponVisible) == 1 || String(remoteWeaponVisible) == "true";
+      entry.backFile = String(remoteBackFile);
+      entry.backItemType = String(remoteBackItemType);
+      entry.backType = String(remoteBackType);
+      entry.backVisible = Number(remoteBackVisible) == 1 || String(remoteBackVisible) == "true";
+      entry.headFile = String(remoteHeadFile);
+      entry.headItemType = String(remoteHeadItemType);
+      entry.headType = String(remoteHeadType);
+      entry.headVisible = Number(remoteHeadVisible) == 1 || String(remoteHeadVisible) == "true";
+      entry.equipmentKnown = true;
+      entry.equipmentKey = equipmentKey;
+
+      if(equipmentChanged && runtimeClassChanged != true)
+      {
+         _root.dfpsApplyRuntimeEquipment(entry,true);
+      }
 
       var newDisplayName = String(remoteName);
       if(newDisplayName == "" || newDisplayName == "undefined" || newDisplayName == "null")
@@ -1008,6 +1590,11 @@ if(_root.dfpsMultiplayerStarted != true)
 
    _root.dfpsRemoteAppearance = function(remoteId,remoteCharId,appearanceVersion,appearanceXml)
    {
+      if(_root.dfpsIsPrivateWorld())
+      {
+         return "deferred";
+      }
+
       var key = "remote_" + String(remoteId);
       var entry = _root.dfpsRemotePlayers[key];
       if(entry == undefined)
@@ -1044,6 +1631,12 @@ if(_root.dfpsMultiplayerStarted != true)
 
    _root.dfpsRemotePlayersEnd = function()
    {
+      if(_root.dfpsIsPrivateWorld())
+      {
+         _root.dfpsClearRemotePlayers();
+         return;
+      }
+
       for(var remoteKey in _root.dfpsRemotePlayers)
       {
          var entry = _root.dfpsRemotePlayers[remoteKey];
@@ -1057,6 +1650,12 @@ if(_root.dfpsMultiplayerStarted != true)
 
    _root.dfpsSmoothRemotePlayers = function()
    {
+      if(_root.dfpsIsPrivateWorld())
+      {
+         _root.dfpsClearRemotePlayers();
+         return;
+      }
+
       var localAvatar = _root.game.avatar.ptrMC;
       var map = _root.game.stage.map;
       if(localAvatar == undefined || map == undefined)
@@ -1064,6 +1663,7 @@ if(_root.dfpsMultiplayerStarted != true)
          return;
       }
 
+      var now = getTimer();
       for(var remoteKey in _root.dfpsRemotePlayers)
       {
          var entry = _root.dfpsRemotePlayers[remoteKey];
@@ -1072,8 +1672,50 @@ if(_root.dfpsMultiplayerStarted != true)
             continue;
          }
 
-         entry.currentX = entry.currentX + (entry.targetX - entry.currentX) * 0.45;
-         entry.currentY = entry.currentY + (entry.targetY - entry.currentY) * 0.45;
+         var previousAt = Number(entry.previousAt);
+         var latestAt = Number(entry.latestAt);
+         var renderAt = now - Number(_root.dfpsInterpolationDelay);
+         if(isNaN(previousAt) || isNaN(latestAt) || latestAt <= previousAt)
+         {
+            entry.currentX = Number(entry.latestX);
+            entry.currentY = Number(entry.latestY);
+         }
+         else if(renderAt <= previousAt)
+         {
+            entry.currentX = Number(entry.previousX);
+            entry.currentY = Number(entry.previousY);
+         }
+         else if(renderAt < latestAt)
+         {
+            var progress = (renderAt - previousAt) / (latestAt - previousAt);
+            entry.currentX = Number(entry.previousX) + (Number(entry.latestX) - Number(entry.previousX)) * progress;
+            entry.currentY = Number(entry.previousY) + (Number(entry.latestY) - Number(entry.previousY)) * progress;
+         }
+         else
+         {
+            var extrapolation = renderAt - latestAt;
+            if(extrapolation < 0)
+            {
+               extrapolation = 0;
+            }
+            if(extrapolation > Number(_root.dfpsMaxExtrapolation))
+            {
+               extrapolation = Number(_root.dfpsMaxExtrapolation);
+            }
+
+            if(entry.moving == true)
+            {
+               entry.currentX = Number(entry.latestX) + Number(entry.velocityX) * extrapolation;
+               entry.currentY = Number(entry.latestY) + Number(entry.velocityY) * extrapolation;
+            }
+            else
+            {
+               entry.currentX = Number(entry.latestX);
+               entry.currentY = Number(entry.latestY);
+               entry.velocityX = 0;
+               entry.velocityY = 0;
+            }
+         }
 
          if(entry.clip != undefined && entry.parent != undefined)
          {
@@ -1090,15 +1732,7 @@ if(_root.dfpsMultiplayerStarted != true)
             entry.clip._x = point.x;
             entry.clip._y = point.y;
 
-            if(!isNaN(entry.scaleX) && entry.scaleX != 0)
-            {
-               entry.clip._xscale = entry.scaleX;
-            }
-            if(!isNaN(entry.scaleY) && entry.scaleY != 0)
-            {
-               entry.clip._yscale = entry.scaleY;
-            }
-
+            _root.dfpsApplyRemoteFacing(entry);
             _root.dfpsApplyRemoteAnimation(entry,false);
          }
 
@@ -1117,7 +1751,7 @@ if(_root.dfpsMultiplayerStarted != true)
    flash.external.ExternalInterface.addCallback("DFPS_RemotePlayersEnd",_root,_root.dfpsRemotePlayersEnd);
    flash.external.ExternalInterface.addCallback("DFPS_RemotePlayersClear",_root,_root.dfpsClearRemotePlayers);
 
-   _root.dfpsWorldTimer = setInterval(_root.dfpsWorldTick,120);
-   _root.dfpsSmoothTimer = setInterval(_root.dfpsSmoothRemotePlayers,33);
+   _root.dfpsWorldTimer = setInterval(_root.dfpsWorldTick,60);
+   _root.dfpsSmoothTimer = setInterval(_root.dfpsSmoothRemotePlayers,20);
    _root.dfpsRemoteLoaderTimer = setInterval(_root.dfpsSilentLoaderWatchdog,250);
 }

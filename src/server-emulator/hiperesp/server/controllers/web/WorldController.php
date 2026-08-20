@@ -48,9 +48,9 @@ class WorldController extends Controller {
         $projection = PvpProjection::instance()->loaded($char);
         $xml = (string)$projection->asXML();
 
-        // Version only the visual appearance. PvPProjection also contains HP, MP,
-        // currency and other changing stats; hashing the entire XML caused remote
-        // avatars to be destroyed/rebuilt even when their appearance did not change.
+        // Version only the base avatar. Weapon, back/cape and head/helm are
+        // synchronized from the live client in the world stream, so a database
+        // equipment save must not destroy and rebuild an otherwise healthy avatar.
         $character = $projection->character;
         $visual = [
             'CharID' => (string)$character['CharID'],
@@ -63,26 +63,7 @@ class WorldController extends Controller {
             'intColorSkin' => (string)$character['intColorSkin'],
             'intColorBase' => (string)$character['intColorBase'],
             'intColorTrim' => (string)$character['intColorTrim'],
-            'items' => [],
         ];
-
-        foreach($character->items as $item) {
-            $spot = \strtolower((string)$item['strEquipSpot']);
-            if(!\in_array($spot, ['weapon', 'back', 'cape', 'head', 'helm'], true)) {
-                continue;
-            }
-            if((int)$item['bitEquipped'] !== 1) {
-                continue;
-            }
-            $visual['items'][] = [
-                'spot' => $spot,
-                'id' => (string)$item['ItemID'],
-                'file' => (string)$item['strFileName'],
-                'type' => (string)$item['strType'],
-                'itemType' => (string)$item['strItemType'],
-            ];
-        }
-        \usort($visual['items'], static fn(array $a, array $b): int => ($a['spot'].'|'.$a['id']) <=> ($b['spot'].'|'.$b['id']));
         $version = \sha1((string)\json_encode($visual, \JSON_UNESCAPED_SLASHES));
 
         return [
