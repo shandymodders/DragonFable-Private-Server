@@ -1,2 +1,1123 @@
 _root.game.gotoAndPlay("CharList");
 flash.external.ExternalInterface.call("hiperesp.dfps.externalInterface.logged", _root.user);
+
+if(_root.dfpsMultiplayerStarted != true)
+{
+   _root.dfpsMultiplayerStarted = true;
+   _root.dfpsRemotePlayers = new Object();
+   _root.dfpsRemoteGeneration = 0;
+   _root.dfpsCurrentMapId = "";
+   _root.dfpsNextUnitIndex = 1000;
+   _root.dfpsRemoteLoadTimeout = 8000;
+   _root.dfpsLastLocalMapX = undefined;
+   _root.dfpsLastLocalMapY = undefined;
+
+   // -----------------------------------------------------------------------
+   // AREA ID
+   // -----------------------------------------------------------------------
+   // DragonFable can use multiple frames/rooms inside the same map SWF.
+   // Include all semantic room indicators we can read so remote players from
+   // another room are removed instead of leaking into the current area.
+   _root.dfpsGetMapId = function()
+   {
+      var map = _root.game.stage.map;
+      if(map == undefined)
+      {
+         return "";
+      }
+
+      var mapUrl = "";
+      if(map._url != undefined)
+      {
+         mapUrl = String(map._url);
+      }
+
+      var mapFrame = 0;
+      if(map._currentframe != undefined)
+      {
+         mapFrame = Number(map._currentframe);
+      }
+
+      var mapLabel = "";
+      if(map._currentlabel != undefined)
+      {
+         mapLabel = String(map._currentlabel);
+      }
+
+      var placementFrame = "";
+      if(_root.game.character != undefined && _root.game.character.placement != undefined && _root.game.character.placement.strFrame != undefined)
+      {
+         placementFrame = String(_root.game.character.placement.strFrame);
+      }
+
+      return mapUrl + "|room=" + String(mapFrame) + "|label=" + mapLabel + "|placement=" + placementFrame;
+   };
+
+   // Resolve the class SWF that is ACTUALLY loaded on the local avatar.
+   // Temporary classes loaded through cf-classload.asp are not necessarily
+   // persisted in the character database, so ptrObj/database class alone can
+   // be stale. avatar._url points at the class SWF currently being rendered.
+   _root.dfpsGetActiveClassFile = function(avatar,playerObj)
+   {
+      var fallback = "";
+      if(playerObj != undefined && playerObj.strClassFileName != undefined)
+      {
+         fallback = String(playerObj.strClassFileName);
+      }
+
+      if(avatar == undefined || avatar._url == undefined)
+      {
+         return fallback;
+      }
+
+      var avatarUrl = String(avatar._url);
+      var queryPos = avatarUrl.indexOf("?");
+      if(queryPos >= 0)
+      {
+         avatarUrl = avatarUrl.substr(0,queryPos);
+      }
+      var hashPos = avatarUrl.indexOf("#");
+      if(hashPos >= 0)
+      {
+         avatarUrl = avatarUrl.substr(0,hashPos);
+      }
+
+      var lowerUrl = avatarUrl.toLowerCase();
+      var classPos = lowerUrl.lastIndexOf("classes/");
+      if(classPos >= 0)
+      {
+         var remainder = avatarUrl.substr(classPos + 8);
+         var genderSlash = remainder.indexOf("/");
+         if(genderSlash >= 0 && genderSlash < remainder.length - 1)
+         {
+            remainder = remainder.substr(genderSlash + 1);
+         }
+         if(remainder != "")
+         {
+            return remainder;
+         }
+      }
+      return fallback;
+   };
+
+   _root.dfpsIsNumericAttribute = function(attrName)
+   {
+      if(attrName == "CharID" || attrName == "ClassID" || attrName == "BaseClassID" || attrName == "RaceID" || attrName == "ItemID" || attrName == "CharItemID")
+      {
+         return true;
+      }
+      if(attrName.substr(0,3) == "int" || attrName.substr(0,3) == "bit")
+      {
+         return true;
+      }
+      return false;
+   };
+
+   _root.dfpsNodeToObject = function(node)
+   {
+      var obj = new Object();
+      if(node == undefined)
+      {
+         return obj;
+      }
+
+      for(var attrName in node.attributes)
+      {
+         var attrValue = node.attributes[attrName];
+         if(_root.dfpsIsNumericAttribute(attrName))
+         {
+            obj[attrName] = Number(attrValue);
+         }
+         else
+         {
+            obj[attrName] = String(attrValue);
+         }
+      }
+      return obj;
+   };
+
+   _root.dfpsIsVisualEquipSpot = function(spot)
+   {
+      spot = String(spot).toLowerCase();
+      return spot == "weapon" || spot == "back" || spot == "cape" || spot == "head" || spot == "helm";
+   };
+
+   _root.dfpsParseAppearance = function(xmlText)
+   {
+      var appearanceXML = new XML();
+      appearanceXML.ignoreWhite = true;
+      appearanceXML.parseXML(String(xmlText));
+
+      var charNode = appearanceXML.firstChild;
+      if(charNode != undefined && charNode.nodeName != "character")
+      {
+         var rootChildren = charNode.childNodes;
+         for(var rc = 0; rc < rootChildren.length; rc++)
+         {
+            if(rootChildren[rc].nodeName == "character")
+            {
+               charNode = rootChildren[rc];
+               break;
+            }
+         }
+      }
+
+      if(charNode == undefined || charNode.nodeName != "character")
+      {
+         return undefined;
+      }
+
+      var obj = _root.dfpsNodeToObject(charNode);
+      obj.items = new Array();
+      obj.arrTempInventory = new Array();
+      obj.bitNPC = false;
+      obj.petDragon = false;
+
+      var childNodes = charNode.childNodes;
+      for(var i = 0; i < childNodes.length; i++)
+      {
+         if(childNodes[i].nodeName == "items")
+         {
+            var itemObj = _root.dfpsNodeToObject(childNodes[i]);
+            if(!_root.dfpsIsVisualEquipSpot(itemObj.strEquipSpot))
+            {
+               continue;
+            }
+
+            // Keep the visual flag separately. DragonFable's normal equipment
+            // pipeline must never be allowed to process remote Armor/Class data.
+            itemObj.dfpsEquipped = Number(itemObj.bitEquipped) == 1;
+            itemObj.bitEquipped = 0;
+            itemObj.used = false;
+            itemObj.showed = false;
+            itemObj.slotted = false;
+            obj.items.push(itemObj);
+         }
+      }
+
+      return obj;
+   };
+
+   _root.dfpsAllocateUnitIndex = function()
+   {
+      var idx = _root.dfpsNextUnitIndex;
+      if(_root.game.Units == undefined || _root.game.Units.arrUnits == undefined)
+      {
+         return -1;
+      }
+
+      while(_root.game.Units.arrUnits[idx] != undefined)
+      {
+         idx++;
+      }
+      _root.dfpsNextUnitIndex = idx + 1;
+      return idx;
+   };
+
+   // -----------------------------------------------------------------------
+   // REMOTE-SAFE SILENT LOADER
+   // -----------------------------------------------------------------------
+   // The stock Loader.loadClip() shows the global loading screen and increments
+   // intLoadCount. Its onLoadError path does NOT decrement intLoadCount, so one
+   // missing remote cape/helm can permanently freeze login or map loading.
+   // Remote assets therefore never use game.mcConn.
+
+   _root.dfpsFindRemoteEntryForClip = function(mc)
+   {
+      var cursor = mc;
+      var depthGuard = 0;
+      while(cursor != undefined && depthGuard < 24)
+      {
+         for(var remoteKey in _root.dfpsRemotePlayers)
+         {
+            var entry = _root.dfpsRemotePlayers[remoteKey];
+            if(entry != undefined && entry.clip != undefined && cursor == entry.clip)
+            {
+               return entry;
+            }
+         }
+         cursor = cursor._parent;
+         depthGuard++;
+      }
+      return undefined;
+   };
+
+   _root.dfpsRemovePendingLoad = function(entry,info)
+   {
+      if(entry == undefined || entry.pendingLoads == undefined)
+      {
+         return;
+      }
+      for(var i = entry.pendingLoads.length - 1; i >= 0; i--)
+      {
+         if(entry.pendingLoads[i] == info)
+         {
+            entry.pendingLoads.splice(i,1);
+            return;
+         }
+      }
+   };
+
+   _root.dfpsSilentLoadFinished = function(info,success,errorCode)
+   {
+      if(info == undefined || info.finished == true)
+      {
+         return;
+      }
+      info.finished = true;
+
+      var entry = info.entry;
+      if(entry != undefined)
+      {
+         _root.dfpsRemovePendingLoad(entry,info);
+      }
+
+      // Ignore callbacks belonging to an avatar that was destroyed/rebuilt.
+      if(entry == undefined || Number(entry.loaderGeneration) != Number(info.loaderGeneration))
+      {
+         return;
+      }
+
+      if(success == true)
+      {
+         if(info.kind == "character")
+         {
+            entry.appearanceLoading = false;
+            entry.appearanceReady = true;
+            entry.appearanceFailed = false;
+            entry.appearanceFailureCount = 0;
+
+            if(entry.clip != undefined)
+            {
+               entry.clip._visible = true;
+            }
+
+            if(entry.avatar != undefined && entry.avatar.ptrMC != undefined)
+            {
+               if(entry.avatar.bitRotateAfterLoad != true && entry.avatar.ptrMC.turn != undefined)
+               {
+                  entry.avatar.ptrMC.turn("left");
+               }
+
+               // This is the REMOTE-SAFE instance override installed below.
+               entry.avatar.equipSavedWeaponConfig();
+               _root.dfpsApplyRemoteAnimation(entry,true);
+            }
+         }
+      }
+      else
+      {
+         if(info.kind == "character")
+         {
+            entry.appearanceLoading = false;
+            entry.appearanceReady = false;
+            entry.appearanceFailed = true;
+            entry.appearanceFailureCount = Number(entry.appearanceFailureCount) + 1;
+         }
+
+         // Equipment failure is intentionally non-fatal. A missing remote cape,
+         // helm or weapon must never block the local player's game.
+         if(info.target != undefined && info.kind != "character")
+         {
+            info.target._visible = false;
+         }
+      }
+   };
+
+   _root.dfpsSilentLoadAbsolute = function(mcDestination,strUrl,strDescription,entry,kind)
+   {
+      if(mcDestination == undefined || entry == undefined)
+      {
+         return false;
+      }
+
+      strUrl = String(strUrl);
+      if(strUrl == "" || strUrl.toLowerCase() == "none" || strUrl == "undefined" || strUrl == "null")
+      {
+         return false;
+      }
+
+      if(entry.pendingLoads == undefined)
+      {
+         entry.pendingLoads = new Array();
+      }
+
+      var info = new Object();
+      info.entry = entry;
+      info.target = mcDestination;
+      info.url = strUrl;
+      info.description = String(strDescription);
+      info.kind = String(kind);
+      info.startedAt = getTimer();
+      info.finished = false;
+      info.loaderGeneration = Number(entry.loaderGeneration);
+
+      var listener = new Object();
+      listener.info = info;
+      listener.onLoadInit = function(mcTarget)
+      {
+         _root.dfpsSilentLoadFinished(this.info,true,"");
+      };
+      listener.onLoadComplete = function(mcTarget)
+      {
+      };
+      listener.onLoadError = function(mcTarget,errorCode,httpStatus)
+      {
+         _root.dfpsSilentLoadFinished(this.info,false,String(errorCode));
+      };
+
+      var mcl = new MovieClipLoader();
+      info.loader = mcl;
+      info.listener = listener;
+      mcl.addListener(listener);
+      entry.pendingLoads.push(info);
+
+      mcDestination.isValid = true;
+      var accepted = mcl.loadClip(strUrl,mcDestination);
+      if(accepted == false)
+      {
+         _root.dfpsSilentLoadFinished(info,false,"LoadRejected");
+         return false;
+      }
+      return true;
+   };
+
+   _root.dfpsSilentLoadFile = function(mcDestination,strTarget,strDescription,entry,kind)
+   {
+      strTarget = String(strTarget);
+      if(strTarget == "" || strTarget.toLowerCase() == "none" || strTarget == "undefined" || strTarget == "null")
+      {
+         return false;
+      }
+      return _root.dfpsSilentLoadAbsolute(mcDestination,String(_root.core.path) + strTarget,strDescription,entry,kind);
+   };
+
+   _root.dfpsSilentLoadRemoteCharacter = function(entry)
+   {
+      if(entry == undefined || entry.avatar == undefined || entry.avatar.ptrObj == undefined || entry.clip == undefined)
+      {
+         return false;
+      }
+
+      var obj = entry.avatar.ptrObj;
+      var gender = String(obj.strGender).toUpperCase();
+      var classFile = String(obj.strClassFileName);
+      if(gender == "" || classFile == "" || classFile == "undefined" || classFile == "null")
+      {
+         entry.appearanceLoading = false;
+         entry.appearanceFailed = true;
+         entry.appearanceFailureCount = Number(entry.appearanceFailureCount) + 1;
+         return false;
+      }
+
+      var classPath = String(_root.core.path) + "classes/" + gender + "/" + classFile;
+      entry.appearanceLoading = true;
+      entry.appearanceReady = false;
+      entry.clip._visible = false;
+      return _root.dfpsSilentLoadAbsolute(entry.clip,classPath,"DFPS Remote Character",entry,"character");
+   };
+
+   _root.dfpsSilentLoaderWatchdog = function()
+   {
+      var now = getTimer();
+      for(var remoteKey in _root.dfpsRemotePlayers)
+      {
+         var entry = _root.dfpsRemotePlayers[remoteKey];
+         if(entry == undefined || entry.pendingLoads == undefined)
+         {
+            continue;
+         }
+
+         for(var i = entry.pendingLoads.length - 1; i >= 0; i--)
+         {
+            var info = entry.pendingLoads[i];
+            if(info == undefined || info.finished == true)
+            {
+               entry.pendingLoads.splice(i,1);
+               continue;
+            }
+
+            if(now - Number(info.startedAt) > _root.dfpsRemoteLoadTimeout)
+            {
+               if(info.loader != undefined && info.target != undefined)
+               {
+                  info.loader.unloadClip(info.target);
+               }
+               _root.dfpsSilentLoadFinished(info,false,"Timeout");
+            }
+         }
+      }
+   };
+
+   // Intercept normal conn.loadFile only when the destination belongs to a
+   // remote avatar. Local character/map/interface assets still use the original
+   // DragonFable loader without any change.
+   if(_root.conn != undefined && _root.conn.loadFile != undefined)
+   {
+      _root.dfpsOriginalConnLoadFile = _root.conn.loadFile;
+      _root.conn.loadFile = function(mcDestination,strTarget,strDescription)
+      {
+         var remoteEntry = _root.dfpsFindRemoteEntryForClip(mcDestination);
+         if(remoteEntry != undefined)
+         {
+            var kind = "equipment";
+            var descLower = String(strDescription).toLowerCase();
+            if(descLower.indexOf("hair") >= 0)
+            {
+               kind = "hair";
+            }
+            else if(descLower.indexOf("weapon") >= 0)
+            {
+               kind = "weapon";
+            }
+            else if(descLower.indexOf("back") >= 0 || descLower.indexOf("cape") >= 0)
+            {
+               kind = "back";
+            }
+            else if(descLower.indexOf("helm") >= 0 || descLower.indexOf("head") >= 0)
+            {
+               kind = "helmet";
+            }
+            _root.dfpsSilentLoadFile(mcDestination,strTarget,strDescription,remoteEntry,kind);
+            return;
+         }
+         return _root.dfpsOriginalConnLoadFile.call(_root.conn,mcDestination,strTarget,strDescription);
+      };
+   }
+
+   // Defensive second layer: some class/item SWFs call game.mcConn.loadClip()
+   // directly rather than conn.loadFile(). Remote destinations are routed to
+   // the silent loader; local destinations still use the untouched stock loader.
+   if(_root.game.mcConn != undefined && _root.game.mcConn.loadClip != undefined)
+   {
+      _root.dfpsOriginalMcConnLoadClip = _root.game.mcConn.loadClip;
+      _root.game.mcConn.loadClip = function(mcDestination,strTarget,strDescription)
+      {
+         var remoteEntry = _root.dfpsFindRemoteEntryForClip(mcDestination);
+         if(remoteEntry != undefined)
+         {
+            _root.dfpsSilentLoadAbsolute(mcDestination,String(strTarget),String(strDescription),remoteEntry,"equipment");
+            return;
+         }
+         return _root.dfpsOriginalMcConnLoadClip.call(_root.game.mcConn,mcDestination,strTarget,strDescription);
+      };
+   }
+
+   // -----------------------------------------------------------------------
+   // AVATAR / POSITION LIFECYCLE
+   // -----------------------------------------------------------------------
+
+   // Position is still network/smoothing driven. Only the class timeline is
+   // switched between native Walk and Idle so remote avatars animate without
+   // running walkTo(), collision checks, map triggers or local-player scripts.
+   _root.dfpsApplyRemoteAnimation = function(entry,force)
+   {
+      if(entry == undefined || entry.clip == undefined || entry.appearanceReady != true)
+      {
+         return;
+      }
+
+      var shouldWalk = entry.moving == true;
+      if(Math.abs(Number(entry.targetX) - Number(entry.currentX)) > 0.8 || Math.abs(Number(entry.targetY) - Number(entry.currentY)) > 0.8)
+      {
+         shouldWalk = true;
+      }
+
+      if(force != true && entry.renderMoving === shouldWalk)
+      {
+         return;
+      }
+
+      entry.renderMoving = shouldWalk;
+      if(shouldWalk)
+      {
+         entry.clip.gotoAndPlay("Walk");
+      }
+      else
+      {
+         entry.clip.gotoAndPlay("Idle");
+      }
+   };
+
+   _root.dfpsDestroyRemotePlayer = function(entry)
+   {
+      if(entry == undefined)
+      {
+         return;
+      }
+
+      entry.loaderGeneration = Number(entry.loaderGeneration) + 1;
+
+      if(entry.pendingLoads != undefined)
+      {
+         for(var p = entry.pendingLoads.length - 1; p >= 0; p--)
+         {
+            var loadInfo = entry.pendingLoads[p];
+            if(loadInfo != undefined && loadInfo.loader != undefined && loadInfo.target != undefined)
+            {
+               loadInfo.loader.unloadClip(loadInfo.target);
+            }
+         }
+         entry.pendingLoads = new Array();
+      }
+
+      if(entry.unitIndex != undefined && entry.unitIndex >= 0 && _root.game.Units != undefined && _root.game.Units.arrUnits != undefined)
+      {
+         if(_root.game.Units.arrUnits[entry.unitIndex] == entry.avatar)
+         {
+            delete _root.game.Units.arrUnits[entry.unitIndex];
+         }
+      }
+
+      if(entry.avatar != undefined)
+      {
+         entry.avatar.destroy();
+      }
+      if(entry.clip != undefined)
+      {
+         entry.clip.removeMovieClip();
+      }
+      if(entry.statusClip != undefined)
+      {
+         entry.statusClip.removeMovieClip();
+      }
+      if(entry.label != undefined)
+      {
+         entry.label.removeTextField();
+      }
+
+      entry.avatar = undefined;
+      entry.clip = undefined;
+      entry.statusClip = undefined;
+      entry.label = undefined;
+      entry.parent = undefined;
+      entry.unitIndex = -1;
+      entry.appearanceReady = false;
+      entry.appearanceLoading = false;
+      entry.renderMoving = undefined;
+   };
+
+   _root.dfpsClearRemotePlayers = function()
+   {
+      for(var remoteKey in _root.dfpsRemotePlayers)
+      {
+         _root.dfpsDestroyRemotePlayer(_root.dfpsRemotePlayers[remoteKey]);
+         delete _root.dfpsRemotePlayers[remoteKey];
+      }
+   };
+
+   // Canonical multiplayer coordinates are stored relative to stage.map.
+   _root.dfpsGetMapPosition = function(avatar)
+   {
+      var point = {x:0,y:0};
+      var map = _root.game.stage.map;
+      avatar.localToGlobal(point);
+      map.globalToLocal(point);
+      return point;
+   };
+
+   _root.dfpsMapPointToParent = function(parent,mapX,mapY)
+   {
+      var point = {x:Number(mapX),y:Number(mapY)};
+      var map = _root.game.stage.map;
+      map.localToGlobal(point);
+      parent.globalToLocal(point);
+      return point;
+   };
+
+   _root.dfpsCreateNameplate = function(parent,entry,key)
+   {
+      var point = _root.dfpsMapPointToParent(parent,entry.currentX,entry.currentY);
+      var labelName = key + "_nameplate";
+      parent.createTextField(labelName,parent.getNextHighestDepth(),point.x - 80,point.y - 115,160,22);
+      var label = parent[labelName];
+      if(label != undefined)
+      {
+         label.selectable = false;
+         label.textColor = 16777215;
+         label.background = true;
+         label.backgroundColor = 2236962;
+         label.border = true;
+         label.borderColor = 11184810;
+         label.autoSize = "center";
+         label.text = entry.displayName;
+      }
+      return label;
+   };
+
+   _root.dfpsInstallSafeRemoteEquipment = function(remoteAvatar,entry)
+   {
+      remoteAvatar.dfpsEntry = entry;
+
+      // If anything in DragonFable tries to reload this remote character later,
+      // keep it on the silent loader instead of game.mcConn.
+      remoteAvatar.loadCharacter = function()
+      {
+         return _root.dfpsSilentLoadRemoteCharacter(this.dfpsEntry);
+      };
+
+      remoteAvatar.equipSavedWeaponConfig = function()
+      {
+         if(this.ptrObj == undefined || this.ptrObj.items == undefined || this.ptrMC == undefined)
+         {
+            return;
+         }
+
+         for(var i = 0; i < this.ptrObj.items.length; i++)
+         {
+            var item = this.ptrObj.items[i];
+            if(item == undefined || item.dfpsEquipped != true)
+            {
+               continue;
+            }
+
+            var spot = String(item.strEquipSpot).toLowerCase();
+            var fileName = String(item.strFileName);
+
+            if(spot == "weapon")
+            {
+               // Use the armor class's own visual weapon method. Any file loads
+               // it starts are intercepted by the remote-safe wrappers above.
+               if(this.ptrMC.equipItem != undefined)
+               {
+                  this.ptrMC.equipItem(item.strEquipSpot,item.strItemType,fileName);
+               }
+            }
+            else if(spot == "back" || spot == "cape")
+            {
+               if(this.ptrMC.chest != undefined && this.ptrMC.chest.back != undefined)
+               {
+                  _root.dfpsSilentLoadFile(this.ptrMC.chest.back,fileName,"DFPS Remote Back",this.dfpsEntry,"back");
+                  this.ptrMC.chest.back._visible = true;
+               }
+            }
+            else if(spot == "head" || spot == "helm")
+            {
+               if(this.ptrMC.head != undefined && this.ptrMC.head.helm != undefined)
+               {
+                  _root.dfpsSilentLoadFile(this.ptrMC.head.helm,fileName,"DFPS Remote Helmet",this.dfpsEntry,"helmet");
+                  this.ptrMC.head.helm._visible = true;
+                  this.bitHelmEquipped = true;
+
+                  if(this.ptrMC.head.hair != undefined)
+                  {
+                     if(String(item.strType).toLowerCase() == "pierce")
+                     {
+                        this.ptrMC.head.hair._visible = true;
+                     }
+                     else
+                     {
+                        this.ptrMC.head.hair._visible = false;
+                     }
+                  }
+               }
+            }
+
+            item.used = true;
+            item.showed = true;
+         }
+      };
+
+      remoteAvatar.loadSavedWeaponConfig = function()
+      {
+         this.equipSavedWeaponConfig();
+      };
+
+      // Remote units do not own the local HUD.
+      remoteAvatar.refreshStatusBar = function()
+      {
+      };
+   };
+
+   _root.dfpsBuildRemoteAvatar = function(entry,appearanceXml,appearanceVersion)
+   {
+      var localAvatar = _root.game.avatar.ptrMC;
+      if(localAvatar == undefined || localAvatar._parent == undefined || _root.game.Units == undefined || _root.game.stage.map == undefined)
+      {
+         return "deferred";
+      }
+
+      // Never start a remote appearance build while DragonFable is loading the
+      // local character/map. JS will retry the same appearance shortly.
+      if(_root.game.mcConn != undefined)
+      {
+         if(_root.game.mcConn._visible == true || Number(_root.game.mcConn.intLoadCount) > 0)
+         {
+            return "deferred";
+         }
+      }
+
+      var appearanceObj = _root.dfpsParseAppearance(appearanceXml);
+      if(appearanceObj == undefined)
+      {
+         return "failed";
+      }
+
+      // PvpProjection can contain the saved/default class. Multiplayer must
+      // render the class currently loaded on the remote player's client.
+      if(Number(entry.classId) > 0)
+      {
+         appearanceObj.ClassID = Number(entry.classId);
+      }
+      if(entry.classFile != undefined && String(entry.classFile) != "" && String(entry.classFile) != "undefined" && String(entry.classFile) != "null")
+      {
+         appearanceObj.strClassFileName = String(entry.classFile);
+      }
+
+      var oldTargetX = entry.targetX;
+      var oldTargetY = entry.targetY;
+      var oldCurrentX = entry.currentX;
+      var oldCurrentY = entry.currentY;
+      var oldScaleX = entry.scaleX;
+      var oldScaleY = entry.scaleY;
+      var oldDisplayName = entry.displayName;
+      var oldClassId = entry.classId;
+      var oldClassFile = entry.classFile;
+      var oldMoving = entry.moving;
+      var oldFailureCount = Number(entry.appearanceFailureCount);
+
+      _root.dfpsDestroyRemotePlayer(entry);
+
+      entry.targetX = oldTargetX;
+      entry.targetY = oldTargetY;
+      entry.currentX = oldCurrentX;
+      entry.currentY = oldCurrentY;
+      entry.scaleX = oldScaleX;
+      entry.scaleY = oldScaleY;
+      entry.displayName = oldDisplayName;
+      entry.classId = oldClassId;
+      entry.classFile = oldClassFile;
+      entry.moving = oldMoving;
+      entry.renderMoving = undefined;
+      entry.appearanceVersion = String(appearanceVersion);
+      entry.appearanceObject = appearanceObj;
+      entry.appearanceXml = String(appearanceXml);
+      entry.appearanceFailureCount = oldFailureCount;
+      entry.appearanceFailed = false;
+      entry.appearanceLoading = true;
+      entry.appearanceReady = false;
+      entry.pendingLoads = new Array();
+
+      var parent = localAvatar._parent;
+      var key = "dfpsRemoteAvatar_" + entry.remoteId;
+      var statusKey = key + "_status";
+
+      parent.createEmptyMovieClip(key,parent.getNextHighestDepth());
+      var remoteClip = parent[key];
+      if(remoteClip == undefined)
+      {
+         entry.appearanceLoading = false;
+         return "failed";
+      }
+
+      parent.createEmptyMovieClip(statusKey,parent.getNextHighestDepth());
+      var statusClip = parent[statusKey];
+      if(statusClip != undefined)
+      {
+         statusClip._visible = false;
+         statusClip._x = -10000;
+         statusClip._y = -10000;
+      }
+
+      var unitIndex = _root.dfpsAllocateUnitIndex();
+      if(unitIndex < 0)
+      {
+         remoteClip.removeMovieClip();
+         if(statusClip != undefined)
+         {
+            statusClip.removeMovieClip();
+         }
+         entry.appearanceLoading = false;
+         return "failed";
+      }
+
+      var remoteAvatar = new Avatar("friend",appearanceObj);
+      remoteAvatar.setPtrMC(remoteClip);
+      remoteAvatar.setPtrSB(statusClip);
+      _root.dfpsInstallSafeRemoteEquipment(remoteAvatar,entry);
+
+      _root.game.Units.arrUnits[unitIndex] = remoteAvatar;
+
+      var startPoint = _root.dfpsMapPointToParent(parent,entry.currentX,entry.currentY);
+      remoteClip._x = startPoint.x;
+      remoteClip._y = startPoint.y;
+      remoteClip._alpha = 100;
+      remoteClip._visible = false;
+
+      entry.avatar = remoteAvatar;
+      entry.clip = remoteClip;
+      entry.statusClip = statusClip;
+      entry.parent = parent;
+      entry.unitIndex = unitIndex;
+      entry.label = _root.dfpsCreateNameplate(parent,entry,key);
+
+      if(_root.dfpsSilentLoadRemoteCharacter(entry) == false)
+      {
+         entry.appearanceLoading = false;
+         entry.appearanceFailed = true;
+         return "failed";
+      }
+      return "loading";
+   };
+
+   _root.dfpsWorldTick = function()
+   {
+      var avatar = _root.game.avatar.ptrMC;
+      var playerObj = _root.game.player.ptrObj;
+      var map = _root.game.stage.map;
+      if(avatar == undefined || playerObj == undefined || map == undefined)
+      {
+         return;
+      }
+
+      var mapId = _root.dfpsGetMapId();
+      if(mapId == "")
+      {
+         return;
+      }
+
+      if(_root.dfpsCurrentMapId != mapId)
+      {
+         _root.dfpsClearRemotePlayers();
+         _root.dfpsCurrentMapId = mapId;
+         _root.dfpsLastLocalMapX = undefined;
+         _root.dfpsLastLocalMapY = undefined;
+      }
+
+      var mapPoint = _root.dfpsGetMapPosition(avatar);
+      var movingNow = avatar.onMove == true;
+      if(_root.dfpsLastLocalMapX != undefined && _root.dfpsLastLocalMapY != undefined)
+      {
+         if(Math.abs(Number(mapPoint.x) - Number(_root.dfpsLastLocalMapX)) > 0.6 || Math.abs(Number(mapPoint.y) - Number(_root.dfpsLastLocalMapY)) > 0.6)
+         {
+            movingNow = true;
+         }
+      }
+      _root.dfpsLastLocalMapX = Number(mapPoint.x);
+      _root.dfpsLastLocalMapY = Number(mapPoint.y);
+
+      var activeClassFile = _root.dfpsGetActiveClassFile(avatar,playerObj);
+
+      flash.external.ExternalInterface.call("hiperesp.dfps.externalInterface.worldState",{
+         map:mapId,
+         charId:Number(playerObj.CharID),
+         classId:Number(playerObj.ClassID),
+         classFile:activeClassFile,
+         moving:movingNow ? 1 : 0,
+         x:mapPoint.x,
+         y:mapPoint.y,
+         scaleX:avatar._xscale,
+         scaleY:avatar._yscale,
+         dir:avatar.moveDir,
+         frame:avatar._currentframe,
+         name:playerObj.strCharacterName
+      });
+   };
+
+   _root.dfpsRemotePlayersBegin = function()
+   {
+      _root.dfpsRemoteGeneration = _root.dfpsRemoteGeneration + 1;
+   };
+
+   _root.dfpsRemotePlayer = function(remoteId,remoteName,remoteUsername,remoteCharId,remoteX,remoteY,remoteScaleX,remoteScaleY,remoteDir,remoteFrame,remoteClassId,remoteClassFile,remoteMoving)
+   {
+      var key = "remote_" + String(remoteId);
+      var entry = _root.dfpsRemotePlayers[key];
+
+      if(entry == undefined)
+      {
+         var displayName = String(remoteName);
+         if(displayName == "" || displayName == "undefined" || displayName == "null")
+         {
+            displayName = String(remoteUsername);
+         }
+
+         entry = new Object();
+         entry.remoteId = String(remoteId);
+         entry.charId = Number(remoteCharId);
+         entry.classId = Number(remoteClassId);
+         entry.classFile = String(remoteClassFile);
+         entry.moving = Number(remoteMoving) == 1 || String(remoteMoving) == "true";
+         entry.renderMoving = undefined;
+         entry.displayName = displayName;
+         entry.currentX = Number(remoteX);
+         entry.currentY = Number(remoteY);
+         entry.targetX = Number(remoteX);
+         entry.targetY = Number(remoteY);
+         entry.scaleX = Number(remoteScaleX);
+         entry.scaleY = Number(remoteScaleY);
+         entry.dir = String(remoteDir);
+         entry.frame = Number(remoteFrame);
+         entry.generation = _root.dfpsRemoteGeneration;
+         entry.appearanceVersion = "";
+         entry.appearanceXml = "";
+         entry.appearanceReady = false;
+         entry.appearanceLoading = false;
+         entry.appearanceFailed = false;
+         entry.appearanceFailureCount = 0;
+         entry.unitIndex = -1;
+         entry.loaderGeneration = 1;
+         entry.pendingLoads = new Array();
+         _root.dfpsRemotePlayers[key] = entry;
+      }
+
+      entry.generation = _root.dfpsRemoteGeneration;
+      entry.charId = Number(remoteCharId);
+
+      var incomingClassId = Number(remoteClassId);
+      var incomingClassFile = String(remoteClassFile);
+      var runtimeClassChanged = false;
+      if(entry.classFile != undefined && String(entry.classFile) != "" && incomingClassFile != "" && String(entry.classFile) != incomingClassFile)
+      {
+         runtimeClassChanged = true;
+      }
+      else if(Number(entry.classId) > 0 && incomingClassId > 0 && Number(entry.classId) != incomingClassId)
+      {
+         runtimeClassChanged = true;
+      }
+
+      entry.classId = incomingClassId;
+      entry.classFile = incomingClassFile;
+      entry.moving = Number(remoteMoving) == 1 || String(remoteMoving) == "true";
+      if(runtimeClassChanged)
+      {
+         // Cached XML can be reused, but force DFPS_RemoteAppearance to rebuild
+         // it with the newly loaded runtime class file.
+         entry.appearanceVersion = "";
+      }
+
+      entry.targetX = Number(remoteX);
+      entry.targetY = Number(remoteY);
+      entry.scaleX = Number(remoteScaleX);
+      entry.scaleY = Number(remoteScaleY);
+      entry.dir = String(remoteDir);
+      entry.frame = Number(remoteFrame);
+
+      var newDisplayName = String(remoteName);
+      if(newDisplayName == "" || newDisplayName == "undefined" || newDisplayName == "null")
+      {
+         newDisplayName = String(remoteUsername);
+      }
+      entry.displayName = newDisplayName;
+
+      if(entry.label != undefined)
+      {
+         entry.label.text = entry.displayName;
+      }
+   };
+
+   _root.dfpsRemoteAppearance = function(remoteId,remoteCharId,appearanceVersion,appearanceXml)
+   {
+      var key = "remote_" + String(remoteId);
+      var entry = _root.dfpsRemotePlayers[key];
+      if(entry == undefined)
+      {
+         return "deferred";
+      }
+      if(Number(entry.charId) != Number(remoteCharId))
+      {
+         return "failed";
+      }
+
+      var requestedVersion = String(appearanceVersion);
+      if(entry.appearanceVersion == requestedVersion)
+      {
+         if(entry.appearanceReady == true)
+         {
+            return "ready";
+         }
+         if(entry.appearanceLoading == true)
+         {
+            return "loading";
+         }
+
+         // Retry a failed class load a limited number of times. Equipment
+         // failures do not mark the whole appearance as failed.
+         if(entry.appearanceFailed == true && Number(entry.appearanceFailureCount) >= 3)
+         {
+            return "failed";
+         }
+      }
+
+      return _root.dfpsBuildRemoteAvatar(entry,String(appearanceXml),requestedVersion);
+   };
+
+   _root.dfpsRemotePlayersEnd = function()
+   {
+      for(var remoteKey in _root.dfpsRemotePlayers)
+      {
+         var entry = _root.dfpsRemotePlayers[remoteKey];
+         if(entry == undefined || entry.generation != _root.dfpsRemoteGeneration)
+         {
+            _root.dfpsDestroyRemotePlayer(entry);
+            delete _root.dfpsRemotePlayers[remoteKey];
+         }
+      }
+   };
+
+   _root.dfpsSmoothRemotePlayers = function()
+   {
+      var localAvatar = _root.game.avatar.ptrMC;
+      var map = _root.game.stage.map;
+      if(localAvatar == undefined || map == undefined)
+      {
+         return;
+      }
+
+      for(var remoteKey in _root.dfpsRemotePlayers)
+      {
+         var entry = _root.dfpsRemotePlayers[remoteKey];
+         if(entry == undefined)
+         {
+            continue;
+         }
+
+         entry.currentX = entry.currentX + (entry.targetX - entry.currentX) * 0.45;
+         entry.currentY = entry.currentY + (entry.targetY - entry.currentY) * 0.45;
+
+         if(entry.clip != undefined && entry.parent != undefined)
+         {
+            if(entry.parent != localAvatar._parent)
+            {
+               // The avatar layer was replaced by a room transition. Destroy the
+               // old instance; JS will re-apply the cached appearance on the new
+               // active layer without touching the global game loader.
+               _root.dfpsDestroyRemotePlayer(entry);
+               continue;
+            }
+
+            var point = _root.dfpsMapPointToParent(entry.parent,entry.currentX,entry.currentY);
+            entry.clip._x = point.x;
+            entry.clip._y = point.y;
+
+            if(!isNaN(entry.scaleX) && entry.scaleX != 0)
+            {
+               entry.clip._xscale = entry.scaleX;
+            }
+            if(!isNaN(entry.scaleY) && entry.scaleY != 0)
+            {
+               entry.clip._yscale = entry.scaleY;
+            }
+
+            _root.dfpsApplyRemoteAnimation(entry,false);
+         }
+
+         if(entry.label != undefined && entry.parent != undefined)
+         {
+            var labelPoint = _root.dfpsMapPointToParent(entry.parent,entry.currentX,entry.currentY);
+            entry.label._x = labelPoint.x - entry.label._width / 2;
+            entry.label._y = labelPoint.y - 115;
+         }
+      }
+   };
+
+   flash.external.ExternalInterface.addCallback("DFPS_RemotePlayersBegin",_root,_root.dfpsRemotePlayersBegin);
+   flash.external.ExternalInterface.addCallback("DFPS_RemotePlayer",_root,_root.dfpsRemotePlayer);
+   flash.external.ExternalInterface.addCallback("DFPS_RemoteAppearance",_root,_root.dfpsRemoteAppearance);
+   flash.external.ExternalInterface.addCallback("DFPS_RemotePlayersEnd",_root,_root.dfpsRemotePlayersEnd);
+   flash.external.ExternalInterface.addCallback("DFPS_RemotePlayersClear",_root,_root.dfpsClearRemotePlayers);
+
+   _root.dfpsWorldTimer = setInterval(_root.dfpsWorldTick,120);
+   _root.dfpsSmoothTimer = setInterval(_root.dfpsSmoothRemotePlayers,33);
+   _root.dfpsRemoteLoaderTimer = setInterval(_root.dfpsSilentLoaderWatchdog,250);
+}

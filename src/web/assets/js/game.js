@@ -6,6 +6,7 @@ if(!window.hiperesp) {
     const eventListeners = {
         load: [],
         logged: [],
+        worldState: [],
     };
 
     window.hiperesp.dfps = {
@@ -13,6 +14,9 @@ if(!window.hiperesp) {
         externalInterface: {
             logged: function(user) {
                 dispatch("logged", [ user ]);
+            },
+            worldState: function(state) {
+                dispatch("worldState", [ state ]);
             }
         },
         addEventListener: function(event, callback) {
