@@ -21,6 +21,17 @@ class CharacterItemProjection extends Projection {
         return $xml;
     }
 
+    public function experienceAdded(CharacterItemVO $characterItemVO): \SimpleXMLElement {
+        $xml = new \SimpleXMLElement('<CharItem/>');
+        $charItemEl = $xml->addChild('CharItem');
+        $charItemEl->addAttribute('intCharLevel', (string)$characterItemVO->level);
+        $charItemEl->addAttribute('intExp', (string)$characterItemVO->experience);
+        $charItemEl->addAttribute('intExpToLevel', (string)$characterItemVO->experienceToLevel);
+        $xml->addChild('status', 'SUCCESS');
+
+        return $xml;
+    }
+
     public function sold(): \SimpleXMLElement {
         $xml = new \SimpleXMLElement('<shopItem/>');
         $xml->addChild('status', 'SUCCESS');

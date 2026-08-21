@@ -131,6 +131,70 @@ abstract class SQL extends Storage {
     }
 
     #[\Override]
+    final public function ensureCollectionFields(string $collection, array $fields): void {
+        if(!\preg_match('/^[A-Za-z0-9_]+$/', $collection)) {
+            throw new \InvalidArgumentException('Invalid collection name.');
+        }
+
+        $structure = Setup::getStructure($collection);
+        foreach($fields as $field) {
+            if(!\is_string($field) || !\preg_match('/^[A-Za-z0-9_]+$/', $field) || !isset($structure[$field])) {
+                throw new \InvalidArgumentException("Invalid field requested for collection {$collection}.");
+            }
+
+            $fieldExists = function() use ($collection, $field): bool {
+                try {
+                    $stmt = $this->pdo->prepare("SELECT `{$field}` FROM {$this->prefix}{$collection} LIMIT 1");
+                    return $stmt->execute();
+                } catch(\Throwable) {
+                    return false;
+                }
+            };
+
+            if($fieldExists()) {
+                continue;
+            }
+
+            $afterCreateSql = [];
+            $fieldDefinition = $this->getFieldDefinition(
+                field: $field,
+                definitions: $this->parseFieldDefinitions($structure[$field]),
+                prefix: $this->prefix,
+                collection: $collection,
+                afterCreateSql: $afterCreateSql
+            );
+
+            try {
+                $stmt = $this->pdo->prepare("ALTER TABLE {$this->prefix}{$collection} ADD COLUMN {$fieldDefinition}");
+                if(!$stmt->execute()) {
+                    throw new \RuntimeException("Failed to add field {$field} to collection {$collection}.");
+                }
+                foreach($afterCreateSql as $sql) {
+                    $this->pdo->exec($sql);
+                }
+            } catch(\Throwable $exception) {
+                // Another PHP worker may have completed the same one-time
+                // migration after our existence check.
+                if(!$fieldExists()) {
+                    throw $exception;
+                }
+            }
+        }
+    }
+
+    private function parseFieldDefinitions(array $definitions): array {
+        $parsedDefinitions = [];
+        foreach($definitions as $key => $value) {
+            if(\is_numeric($key)) {
+                $parsedDefinitions[$value] = null;
+            } else {
+                $parsedDefinitions[$key] = $value;
+            }
+        }
+        return $parsedDefinitions;
+    }
+
+    #[\Override]
     protected function existsCollection(string $prefix, string $collection): bool {
         try {
             $stmt = $this->pdo->prepare("SELECT 1 FROM {$prefix}{$collection} LIMIT 1");
@@ -145,20 +209,9 @@ abstract class SQL extends Storage {
 
         $tableFieldsDefinitions = [];
         foreach(Setup::getStructure($collection) as $field => $definitions) {
-            $parsedDefinitions = [];
-            foreach($definitions as $key => $value) {
-                if(\is_numeric($key)) {
-                    $definition = $value;
-                    $params = NULL;
-                } else {
-                    $definition = $key;
-                    $params = $value;
-                }
-                $parsedDefinitions[$definition] = $params;
-            }
             $tableFieldsDefinitions[] = $this->getFieldDefinition(
                 field: $field,
-                definitions: $parsedDefinitions,
+                definitions: $this->parseFieldDefinitions($definitions),
                 prefix: $prefix,
                 collection: $collection,
                 afterCreateSql: $afterCreateSql

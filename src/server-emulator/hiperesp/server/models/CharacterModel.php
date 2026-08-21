@@ -199,31 +199,61 @@ class CharacterModel extends Model {
         ]);
     }
 
+    private function setEncodedStringValue(CharacterVO $char, string $field, int $index, int $value): void {
+        if(!\in_array($field, ['quests', 'skills', 'armor'], true) || $value < 0 || $value >= 36) {
+            throw new DFException(DFException::BAD_REQUEST);
+        }
+
+        $update = function() use ($char, $field, $index, $value): void {
+            $rows = $this->storage->select(self::COLLECTION, ['id' => $char->id]);
+            if(!isset($rows[0])) {
+                throw new DFException(DFException::CHARACTER_NOT_FOUND);
+            }
+
+            $encodedString = (string)$rows[0][$field];
+            if($index < 0 || $index >= \strlen($encodedString)) {
+                throw new DFException(DFException::BAD_REQUEST);
+            }
+
+            $encodedString[$index] = \strtoupper(\base_convert((string)$value, 10, 36));
+            $this->storage->update(self::COLLECTION, [
+                'id' => $char->id,
+                $field => $encodedString
+            ]);
+        };
+
+        // Fishing can save its rank and fish bitmask in two immediate requests.
+        // Serialize string writes per character so the later request cannot
+        // overwrite the first one with an older copy of the skill string.
+        $lockPath = \sys_get_temp_dir().'/dfps-char-string-'.\sha1((string)$char->id).'.lock';
+        $lock = @\fopen($lockPath, 'c');
+        if($lock === false) {
+            $update();
+            return;
+        }
+
+        $locked = false;
+        try {
+            $locked = \flock($lock, LOCK_EX);
+            $update();
+        } finally {
+            if($locked) {
+                \flock($lock, LOCK_UN);
+            }
+            \fclose($lock);
+        }
+    }
+
     public function setQuestString(CharacterVO $char, int $index, int $value): void {
-        $questString = $char->quests;
-        $questString[$index] = \strtoupper(\base_convert((string)$value, 10, 36));
-        $this->storage->update(self::COLLECTION, [
-            'id' => $char->id,
-            'quests' => $questString
-        ]);
+        $this->setEncodedStringValue($char, 'quests', $index, $value);
     }
 
     public function setSkillString(CharacterVO $char, int $index, int $value): void {
-        $skillString = $char->skills;
-        $skillString[$index] = \strtoupper(\base_convert((string)$value, 10, 36));
-        $this->storage->update(self::COLLECTION, [
-            'id' => $char->id,
-            'skills' => $skillString
-        ]);
+        $this->setEncodedStringValue($char, 'skills', $index, $value);
     }
 
     public function setArmorString(CharacterVO $char, int $index, int $value): void {
-        $armorString = $char->armor;
-        $armorString[$index] = \strtoupper(\base_convert((string)$value, 10, 36));
-        $this->storage->update(self::COLLECTION, [
-            'id' => $char->id,
-            'armor' => $armorString
-        ]);
+        $this->setEncodedStringValue($char, 'armor', $index, $value);
     }
 
     public function applyQuestRewards(CharacterVO $char, QuestVO $quest, array $reward): void {

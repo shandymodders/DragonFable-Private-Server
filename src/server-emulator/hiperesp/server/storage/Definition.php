@@ -464,6 +464,8 @@ final class Definition {
                 "itemId"    => [ 'INTEGER', 'FOREIGN_KEY' => [ "collection" => "item", "field" => "id" ] ],
                 "equipped"  => [ 'BIT', 'DEFAULT' => 0 ],
                 "count"     => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "level"     => [ 'INTEGER', 'DEFAULT' => 1 ],
+                "experience"=> [ 'INTEGER', 'DEFAULT' => 0 ],
                 "banked"    => [ 'BIT', 'DEFAULT' => 0 ],
             ],
             "data" => [],

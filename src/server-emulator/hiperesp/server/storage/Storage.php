@@ -21,6 +21,8 @@ abstract class Storage {
     protected abstract function dropCollection(string $prefix, string $collection): bool;
     protected abstract function renameCollection(string $oldPrefix, string $oldCollectionName, string $newPrefix, string $newCollectionName): bool;
 
+    public abstract function ensureCollectionFields(string $collection, array $fields): void;
+
     protected string $dateFormat = "Y-m-d";
     protected string $dateTimeFormat = "Y-m-d H:i:s";
 

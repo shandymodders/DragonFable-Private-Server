@@ -19,7 +19,15 @@ class CharacterItemVO extends ValueObject {
 
     public readonly bool $equipped;
     public readonly int $count;
+    public readonly int $level;
+    public readonly int $experience;
     public readonly bool $banked;
+
+    public int $experienceToLevel {
+        get {
+            return self::experienceRequiredForLevel($this->level);
+        }
+    }
 
     public int $hoursOwned {
         get {
@@ -39,6 +47,11 @@ class CharacterItemVO extends ValueObject {
 
     public function getChar(): CharacterVO {
         return $this->characterModel->getByCharItem($this);
+    }
+
+    public static function experienceRequiredForLevel(int $level): int {
+        $level = \max(1, $level);
+        return (int)((62 + 3 * $level + 55 * $level * $level) / 2);
     }
 
 }

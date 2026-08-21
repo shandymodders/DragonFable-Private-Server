@@ -149,6 +149,9 @@ class CharacterProjection extends Projection {
             $itemEl->addAttribute('bitEquipped', $characterItem->equipped ? 1 : 0);
             $itemEl->addAttribute('intCount', $characterItem->count);
             $itemEl->addAttribute('intHoursOwned', $characterItem->hoursOwned);
+            $itemEl->addAttribute('intCharLevel', $characterItem->level);
+            $itemEl->addAttribute('intExp', $characterItem->experience);
+            $itemEl->addAttribute('intExpToLevel', $characterItem->experienceToLevel);
 
             $item = $characterItem->getItem();
             $itemEl->addAttribute('ItemID', $item->id);
@@ -403,6 +406,9 @@ class CharacterProjection extends Projection {
 
             $itemEl->addAttribute('CharItemID', $characterItem->id);
             $itemEl->addAttribute('intCount', $characterItem->count);
+            $itemEl->addAttribute('intCharLevel', $characterItem->level);
+            $itemEl->addAttribute('intExp', $characterItem->experience);
+            $itemEl->addAttribute('intExpToLevel', $characterItem->experienceToLevel);
 
             $item = $characterItem->getItem();
             $itemEl->addAttribute('ItemID', $item->id);

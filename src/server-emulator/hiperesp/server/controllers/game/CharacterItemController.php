@@ -29,6 +29,22 @@ class CharacterItemController extends Controller {
     }
 
     #[Request(
+        endpoint: '/cf-itemexp.asp',
+        inputType: Input::NINJA2,
+        outputType: Output::XML
+    )]
+    public function addExperience(\SimpleXMLElement $input): \SimpleXMLElement {
+        $char = $this->characterService->auth($input);
+        $charItem = $this->characterBagService->addItemExperience(
+            $char,
+            (int)$input->intCharItemID,
+            (int)$input->intExp
+        );
+
+        return CharacterItemProjection::instance()->experienceAdded($charItem);
+    }
+
+    #[Request(
         endpoint: '/cf-saveweaponconfig.asp',
         inputType: Input::NINJA2,
         outputType: Output::XML

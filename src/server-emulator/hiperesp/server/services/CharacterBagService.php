@@ -5,6 +5,7 @@ use hiperesp\server\attributes\Inject;
 use hiperesp\server\exceptions\DFException;
 use hiperesp\server\models\CharacterItemModel;
 use hiperesp\server\models\LogsModel;
+use hiperesp\server\vo\CharacterItemVO;
 use hiperesp\server\vo\CharacterVO;
 
 class CharacterBagService extends Service {
@@ -35,6 +36,32 @@ class CharacterBagService extends Service {
 
     public function saveWeaponConfig(CharacterVO $char, $itemArray): void {
         $this->characterItemModel->saveWeaponConfig($char, $itemArray);
+    }
+
+    public function addItemExperience(CharacterVO $char, int $itemId, int $experience): CharacterItemVO {
+        try {
+            $charItem = $this->characterItemModel->addExperience($char, $itemId, $experience);
+        } catch(DFException $exception) {
+            throw $this->logsModel->register(
+                LogsModel::SEVERITY_BLOCKED,
+                'addItemExperience',
+                'Unable to add character item experience',
+                $char,
+                $char,
+                ['itemId' => $itemId, 'experience' => $experience]
+            )->asException($exception->getDFCode());
+        }
+
+        $this->logsModel->register(
+            LogsModel::SEVERITY_ALLOWED,
+            'addItemExperience',
+            'Character item experience added',
+            $char,
+            $charItem,
+            ['experience' => $experience, 'level' => $charItem->level]
+        );
+
+        return $charItem;
     }
 
     public function bankToChar(CharacterVO $char, int $itemId): void {
