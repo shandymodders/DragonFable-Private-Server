@@ -48322,5 +48322,26 @@
         "monsterMaxLevel": 0,
         "monsterType": "none",
         "monsterGroupSwf": "none"
+    },
+    {
+        "id": 10001,
+        "name": "Shukaku Boss",
+        "description": "Face Shukaku and defeat him!",
+        "complete": "Shukaku Defeated!",
+        "swf": "towns\/Universe\/quest-Shukaku.swf",
+        "swfX": "none",
+        "maxSilver": 0,
+        "maxGold": 2000,
+        "maxGems": 0,
+        "maxExp": 50000,
+        "minTime": 0,
+        "counter": 0,
+        "extra": "",
+        "dailyIndex": 0,
+        "dailyReward": 0,
+        "monsterMinLevel": 0,
+        "monsterMaxLevel": 100,
+        "monsterType": "Shukaku",
+        "monsterGroupSwf": "mset-Shukaku.swf"
     }
 ]

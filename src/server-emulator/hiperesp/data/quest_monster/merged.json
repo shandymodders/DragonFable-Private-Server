@@ -44243,5 +44243,10 @@
         "id": 8861,
         "questId": 2337,
         "monsterId": 12
+    },
+    {
+        "id": 90000,
+        "questId": 10001,
+        "monsterId": 10001
     }
 ]
