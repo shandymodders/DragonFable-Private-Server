@@ -32,7 +32,7 @@ final class Definition {
                 "enableAdvertising"     => [ 'BIT', 'DEFAULT' => 0 ],
                 "dailyQuestCoinsReward" => [ 'INTEGER', 'DEFAULT' => 3 ],
 
-                "dragonAmuletForAll"    => [ 'BIT', 'DEFAULT' => 0 ],
+                "dragonAmuletForAll"    => [ 'BIT', 'DEFAULT' => 1 ],
 
                 "revalidateClientValues" => [ 'BIT', 'DEFAULT' => 0 ],
                 "banInvalidClientValues" => [ 'BIT', 'DEFAULT' => 0 ],
